@@ -441,7 +441,7 @@ export default function TablasMaestrasPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-[13px]">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-200">
+                  <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                     {sortTh('nombre', 'Nombre', 'pl-5')}
                     {esSubarea && (
                       <th className="text-left px-4 py-2.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">

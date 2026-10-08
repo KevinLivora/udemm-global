@@ -684,7 +684,7 @@ export default function BandejaAprobacionesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/70">
+                <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                   <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 px-4 py-3">Docente</th>
                   <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 px-4 py-3">Asignatura</th>
                   <th className="text-left text-[10px] font-bold uppercase tracking-wider text-slate-400 px-4 py-3">Carrera</th>

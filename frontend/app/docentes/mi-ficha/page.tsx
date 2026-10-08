@@ -3025,7 +3025,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   ) : null}
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th className="px-3 py-2">Titulo</th><th className="px-3 py-2">Año</th><th className="px-3 py-2">Pais</th><th className="px-3 py-2">Institucion</th><th className="px-3 py-2 text-right">Accion</th></tr></thead>
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white"><tr><th className="px-3 py-2">Titulo</th><th className="px-3 py-2">Año</th><th className="px-3 py-2">Pais</th><th className="px-3 py-2">Institucion</th><th className="px-3 py-2 text-right">Accion</th></tr></thead>
                       <tbody>{titulosGrado.length === 0 ? <tr><td colSpan={5} className="px-3 py-3 text-slate-500">Sin registros cargados.</td></tr> : titulosGrado.map((item) => <tr key={item.id} className="border-t border-slate-100"><td className="px-3 py-2">{item.denominacion}</td><td className="px-3 py-2">{item.anio}</td><td className="px-3 py-2">{item.pais}</td><td className="px-3 py-2">{item.institucion}</td><td className="px-3 py-2 text-right">{editMode ? <div className="inline-flex gap-1"><button type="button" onClick={() => editarTitulo(item)} className="rounded-md border border-slate-200 p-1.5 text-slate-600" aria-label="Editar registro" title="Editar registro"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path d="M13.586 3.586a2 2 0 112.828 2.828l-8.12 8.12a2 2 0 01-.878.497l-3.11.889a.75.75 0 01-.927-.927l.889-3.11a2 2 0 01.497-.878l8.12-8.12z" /></svg></button><button type="button" onClick={() => eliminarTituloGrado(item.id)} className="rounded-md border border-red-200 p-1.5 text-red-500 hover:bg-red-50" aria-label="Eliminar registro" title="Eliminar registro"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" /></svg></button></div> : null}</td></tr>)}</tbody>
                     </table>
                   </div>
@@ -3052,7 +3052,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   ) : null}
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th className="px-3 py-2">Titulo</th><th className="px-3 py-2">Tipo</th><th className="px-3 py-2">Año</th><th className="px-3 py-2">Institucion</th><th className="px-3 py-2 text-right">Accion</th></tr></thead>
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white"><tr><th className="px-3 py-2">Titulo</th><th className="px-3 py-2">Tipo</th><th className="px-3 py-2">Año</th><th className="px-3 py-2">Institucion</th><th className="px-3 py-2 text-right">Accion</th></tr></thead>
                       <tbody>{titulosPosgrado.length === 0 ? <tr><td colSpan={5} className="px-3 py-3 text-slate-500">Sin registros cargados.</td></tr> : titulosPosgrado.map((item) => <tr key={item.id} className="border-t border-slate-100"><td className="px-3 py-2">{item.denominacion}</td><td className="px-3 py-2">{item.tipo}</td><td className="px-3 py-2">{item.anio}</td><td className="px-3 py-2">{item.institucion}</td><td className="px-3 py-2 text-right">{editMode ? <div className="inline-flex gap-1"><button type="button" onClick={() => editarPosgrado(item)} className="rounded-md border border-slate-200 p-1.5 text-slate-600" aria-label="Editar registro posgrado" title="Editar registro posgrado"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path d="M13.586 3.586a2 2 0 112.828 2.828l-8.12 8.12a2 2 0 01-.878.497l-3.11.889a.75.75 0 01-.927-.927l.889-3.11a2 2 0 01.497-.878l8.12-8.12z" /></svg></button><button type="button" onClick={() => eliminarTituloPosgrado(item.id)} className="rounded-md border border-red-200 p-1.5 text-red-500 hover:bg-red-50" aria-label="Eliminar registro posgrado" title="Eliminar registro posgrado"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" /></svg></button></div> : null}</td></tr>)}</tbody>
                     </table>
                   </div>
@@ -3078,7 +3078,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   ) : null}
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th className="px-3 py-2">Titulo</th><th className="px-3 py-2">Año</th><th className="px-3 py-2">Institucion</th><th className="px-3 py-2 text-right">Accion</th></tr></thead>
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white"><tr><th className="px-3 py-2">Titulo</th><th className="px-3 py-2">Año</th><th className="px-3 py-2">Institucion</th><th className="px-3 py-2 text-right">Accion</th></tr></thead>
                       <tbody>{otrosTitulos.length === 0 ? <tr><td colSpan={4} className="px-3 py-3 text-slate-500">Sin registros cargados.</td></tr> : otrosTitulos.map((item) => <tr key={item.id} className="border-t border-slate-100"><td className="px-3 py-2">{item.denominacion}</td><td className="px-3 py-2">{item.anio}</td><td className="px-3 py-2">{item.institucion}</td><td className="px-3 py-2 text-right">{editMode ? <div className="inline-flex gap-1"><button type="button" onClick={() => editarOtroTitulo(item)} className="rounded-md border border-slate-200 p-1.5 text-slate-600" aria-label="Editar otro titulo" title="Editar otro titulo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path d="M13.586 3.586a2 2 0 112.828 2.828l-8.12 8.12a2 2 0 01-.878.497l-3.11.889a.75.75 0 01-.927-.927l.889-3.11a2 2 0 01.497-.878l8.12-8.12z" /></svg></button><button type="button" onClick={() => eliminarOtroTitulo(item.id)} className="rounded-md border border-red-200 p-1.5 text-red-500 hover:bg-red-50" aria-label="Eliminar otro titulo" title="Eliminar otro titulo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" /></svg></button></div> : null}</td></tr>)}</tbody>
                     </table>
                   </div>
@@ -3105,7 +3105,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   ) : null}
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr><th className="px-3 py-2">Titulo</th><th className="px-3 py-2">Institución</th><th className="px-3 py-2">Unidad Académica</th><th className="px-3 py-2">Año</th><th className="px-3 py-2 text-right">Accion</th></tr></thead>
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white"><tr><th className="px-3 py-2">Titulo</th><th className="px-3 py-2">Institución</th><th className="px-3 py-2">Unidad Académica</th><th className="px-3 py-2">Año</th><th className="px-3 py-2 text-right">Accion</th></tr></thead>
                       <tbody>{carrerasFormacionDocente.length === 0 ? <tr><td colSpan={5} className="px-3 py-3 text-slate-500">Sin registros cargados.</td></tr> : carrerasFormacionDocente.map((item) => <tr key={item.id} className="border-t border-slate-100"><td className="px-3 py-2">{item.denominacion}</td><td className="px-3 py-2">{item.institucion}</td><td className="px-3 py-2">{item.unidadAcademica}</td><td className="px-3 py-2">{item.anio}</td><td className="px-3 py-2 text-right">{editMode ? <div className="inline-flex gap-1"><button type="button" onClick={() => editarCarreraFormDoc(item)} className="rounded-md border border-slate-200 p-1.5 text-slate-600" aria-label="Editar carrera formacion docente" title="Editar carrera formacion docente"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path d="M13.586 3.586a2 2 0 112.828 2.828l-8.12 8.12a2 2 0 01-.878.497l-3.11.889a.75.75 0 01-.927-.927l.889-3.11a2 2 0 01.497-.878l8.12-8.12z" /></svg></button><button type="button" onClick={() => eliminarCarreraFormDoc(item.id)} className="rounded-md border border-red-200 p-1.5 text-red-500 hover:bg-red-50" aria-label="Eliminar carrera formacion docente" title="Eliminar carrera formacion docente"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4"><path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clipRule="evenodd" /></svg></button></div> : null}</td></tr>)}</tbody>
                     </table>
                   </div>
@@ -3203,7 +3203,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   ) : (
                     <div className="overflow-x-auto rounded-xl border border-slate-200">
                       <table className="min-w-full text-sm">
-                        <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                        <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white">
                           <tr>
                             <th className="px-3 py-2 whitespace-nowrap">Facultad</th>
                             <th className="px-3 py-2 whitespace-nowrap">Carrera</th>
@@ -3281,7 +3281,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   </div>
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white">
                         <tr>
                           <th className="px-3 py-2">Carreras de posgrado</th>
                           <th className="px-3 py-2">Actividad curricular</th>
@@ -3397,7 +3397,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   </div>
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white">
                         <tr>
                           <th className="px-3 py-2">Periodo desde</th>
                           <th className="px-3 py-2">Periodo hasta</th>
@@ -3537,7 +3537,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   </div>
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white">
                         <tr>
                           <th className="px-3 py-2">Cargo</th>
                           <th className="px-3 py-2">Institución</th>
@@ -3605,7 +3605,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   </div>
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white">
                         <tr>
                           <th className="px-3 py-2">Concepto</th>
                           <th className="px-3 py-2">Horas seman. (hs)</th>
@@ -3690,7 +3690,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   </div>
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white">
                         <tr>
                           <th className="px-3 py-2">Período desde</th>
                           <th className="px-3 py-2">Período hasta</th>
@@ -3767,7 +3767,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   </div>
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white">
                         <tr>
                           <th className="px-3 py-2">Período desde</th>
                           <th className="px-3 py-2">Período hasta</th>
@@ -3864,7 +3864,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   </div>
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white">
                         <tr>
                           <th className="px-3 py-2">Sistema</th>
                           <th className="px-3 py-2">Categoría</th>
@@ -3944,7 +3944,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   </div>
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white">
                         <tr>
                           <th className="px-3 py-2">Código</th>
                           <th className="px-3 py-2">Título del proyecto</th>
@@ -4022,7 +4022,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   </div>
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white">
                         <tr>
                           <th className="px-3 py-2">Código</th>
                           <th className="px-3 py-2">Actividad</th>
@@ -4100,7 +4100,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   </div>
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white">
                         <tr>
                           <th className="px-3 py-2">Tipo</th>
                           <th className="px-3 py-2">Referencia bibliográfica</th>
@@ -4192,7 +4192,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   </div>
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white">
                         <tr>
                           <th className="px-3 py-2">Título</th>
                           <th className="px-3 py-2">Lugar</th>
@@ -4278,7 +4278,7 @@ drawSection('Área de desempeño', '3.1 Disciplina y área', [
                   </div>
                   <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200">
                     <table className="min-w-full text-sm">
-                      <thead className="bg-slate-50 text-left text-xs uppercase text-slate-500">
+                      <thead className="bg-[#0f4c81] text-left text-xs uppercase text-white">
                         <tr>
                           <th className="px-3 py-2">Organismo convocante</th>
                           <th className="px-3 py-2">Lugar</th>

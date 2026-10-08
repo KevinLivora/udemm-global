@@ -213,7 +213,7 @@ export default function SubareasPage() {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-slate-50 border-b border-slate-200">
+            <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
               <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-500">Nombre</th>
               <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-500">Área Disciplinar</th>
               <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-500 w-28">Estado</th>

@@ -510,7 +510,7 @@ function SelectorView({ apiFetch, usuario, router }: {
                         <div className="border-t border-slate-100 overflow-x-auto">
                           <table className="w-full text-xs">
                             <thead>
-                              <tr className="bg-slate-50/80 border-b border-slate-100">
+                              <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                                 <th className="text-left px-4 py-2 font-semibold text-slate-500 uppercase tracking-wide w-28">Código</th>
                                 <th className="text-left px-4 py-2 font-semibold text-slate-500 uppercase tracking-wide">Asignatura</th>
                                 <th className="text-left px-4 py-2 font-semibold text-slate-500 uppercase tracking-wide w-24">Duración</th>
@@ -990,7 +990,7 @@ function FichaView({ materiaId, permisos, permisosPrograma, puedeEditarPrograma 
                 <div className="rounded-lg border border-slate-200 overflow-hidden">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="bg-slate-50 border-b border-slate-200">
+                      <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                         <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wide text-[10px] w-24">Código</th>
                         <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wide text-[10px]">Nombre</th>
                         <th className="text-left px-3 py-2 font-semibold text-slate-500 uppercase tracking-wide text-[10px] w-28">Tipo</th>
@@ -2032,7 +2032,7 @@ function ProgramaView({
               <div className="overflow-x-auto rounded-lg border border-slate-200">
                 <table className="w-full text-sm border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
+                    <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                       <th className="text-left px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600 w-1/2">
                         Competencia <span className="text-red-500">*</span>
                       </th>
@@ -2106,7 +2106,7 @@ function ProgramaView({
               <div className="overflow-x-auto rounded-lg border border-slate-200">
                 <table className="w-full text-sm border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
+                    <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                       <th className="text-left px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
                         Conceptuales <span className="text-red-500">*</span>
                       </th>
@@ -2200,7 +2200,7 @@ function ProgramaView({
             <div className="overflow-x-auto rounded-lg border border-slate-200">
               <table className="w-full text-sm border-collapse">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
+                  <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                     <th className="text-left px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600 w-4/5">
                       Unidad didáctica <span className="text-red-500">*</span>
                     </th>
@@ -2304,7 +2304,7 @@ function ProgramaView({
               <div className="overflow-x-auto rounded-lg border border-slate-200">
                 <table className="w-full text-sm border-collapse">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
+                    <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                       <th className="text-left px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
                         Intensidad de formación práctica
                       </th>

@@ -657,7 +657,7 @@ export default function EstructuraCurricularPage() {
                             <div className="overflow-x-auto">
                               <table className="w-full text-xs min-w-[900px]">
                                 <thead>
-                                  <tr className="border-b border-slate-100">
+                                  <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                                     <Th label="Código"     col="codigo"   ordenCol={ordenCol} ordenAsc={ordenAsc} onClick={() => toggleSort('codigo')}   cls="w-28 pl-5" />
                                     <Th label="Asignatura" col="nombre"   ordenCol={ordenCol} ordenAsc={ordenAsc} onClick={() => toggleSort('nombre')}   cls="min-w-[180px]" />
                                     <Th label="Bloque"     col="bloque"   ordenCol={ordenCol} ordenAsc={ordenAsc} onClick={() => toggleSort('bloque')}   cls="min-w-[160px]" />

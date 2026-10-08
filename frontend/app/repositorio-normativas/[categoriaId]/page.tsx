@@ -734,7 +734,7 @@ export default function CategoriaDetallePage() {
               /* ── Tabla normal (ACTIVAS / TODAS) ─────────────────────────── */
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100">
+                  <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                     <th className="px-5 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Título</th>
                     <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500">Área emisora</th>
                     <th className="px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">N.° / Año</th>

@@ -448,7 +448,7 @@ export default function InformacionPlanesPage() {
                     <div className="overflow-x-auto rounded-lg border border-slate-100">
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="bg-slate-50 border-b border-slate-100">
+                          <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                             <th className="text-left px-4 py-2.5 font-semibold text-slate-600">Bloque</th>
                             <th className="text-right px-4 py-2.5 font-semibold text-slate-600">Asignaturas</th>
                             <th className="text-right px-4 py-2.5 font-semibold text-slate-600">Carga Horaria</th>

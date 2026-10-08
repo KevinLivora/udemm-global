@@ -498,7 +498,7 @@ export default function RepositorioNormativasPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-slate-50 border-b border-slate-200">
+                    <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                       <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500 whitespace-nowrap">Fecha / Hora</th>
                       <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">Usuario</th>
                       <th className="px-4 py-3 text-left text-[10px] font-bold uppercase tracking-widest text-slate-500">Acción</th>
@@ -683,7 +683,7 @@ export default function RepositorioNormativasPage() {
                     <div className="rounded-xl border border-slate-200 overflow-hidden">
                       <table className="w-full text-xs">
                         <thead>
-                          <tr className="bg-slate-50 border-b border-slate-200">
+                          <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                             <th className="px-3 py-2 text-left font-bold uppercase tracking-widest text-slate-400 text-[10px]">Campo</th>
                             <th className="px-3 py-2 text-left font-bold uppercase tracking-widest text-slate-400 text-[10px]">Anterior</th>
                             <th className="px-3 py-2 text-left font-bold uppercase tracking-widest text-slate-400 text-[10px]">Nuevo</th>

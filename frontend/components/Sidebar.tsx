@@ -3,6 +3,7 @@
 import { useAuth } from '@/lib/auth-context';
 import { useSidebar } from '@/lib/sidebar-context';
 import { useNotificaciones } from '@/lib/notificaciones-context';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ReactNode, useState } from 'react';
@@ -406,7 +407,7 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* Usuario y cierre de sesión */}
+      {/* Usuario, tema y cierre de sesión */}
       <div className="border-t border-white/5 p-2 space-y-1">
         {isOpen && (
           <div className="px-2.5 py-1.5 rounded-lg bg-white/3">
@@ -418,6 +419,7 @@ export function Sidebar() {
             </p>
           </div>
         )}
+        <ThemeToggle showLabel={isOpen} />
         <button
           onClick={handleLogout}
           title={!isOpen ? 'Cerrar sesión' : undefined}

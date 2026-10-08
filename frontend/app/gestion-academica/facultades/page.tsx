@@ -320,7 +320,7 @@ export default function FacultadesPage() {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
           <table className="w-full text-xs">
             <thead>
-              <tr className="bg-slate-50/80 border-b border-slate-100">
+              <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                 <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-24">Código</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide">Nombre</th>
                 <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Descripción</th>

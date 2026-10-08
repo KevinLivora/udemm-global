@@ -325,7 +325,7 @@ export default function VinculacionesCatedraPage() {
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
+              <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                 <th className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Docente</th>
                 <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Asignatura</th>
                 <th className="text-left px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-slate-500 whitespace-nowrap">Carrera / Plan</th>

@@ -629,7 +629,7 @@ export default function ProgramasAsignaturaPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="bg-slate-50/80 border-b border-slate-100">
+                      <tr className="bg-[#0f4c81] text-white text-xs font-semibold uppercase tracking-wider">
                         <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-28">Código</th>
                         <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide">Asignatura</th>
                         <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-16">Año</th>
