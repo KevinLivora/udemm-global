@@ -13,12 +13,12 @@ const ROLES_VER = [
   'ADMINISTRATIVO', 'DECANO', 'RECTORADO', 'DOCENTE'
 ] as const;
 
-// FASE 3 — Los únicos roles con permiso de edición de Programas son:
+// ADMINISTRADOR_SISTEMA: scope global (mismos permisos que SECRETARIA_ACADEMICA en Programas).
 // DIRECTOR_CARRERA (scope carrera), DECANO (scope facultad),
 // SECRETARIA_ACADEMICA y RECTORADO (scope global).
-// DOCENTE, ADMINISTRADOR_SISTEMA y ADMINISTRATIVO son solo lectura.
+// DOCENTE y ADMINISTRATIVO son solo lectura.
 const ROLES_EDITAR = [
-  'DIRECTOR_CARRERA', 'DECANO', 'SECRETARIA_ACADEMICA', 'RECTORADO'
+  'ADMINISTRADOR_SISTEMA', 'DIRECTOR_CARRERA', 'DECANO', 'SECRETARIA_ACADEMICA', 'RECTORADO'
 ] as const;
 
 @Controller('programas')

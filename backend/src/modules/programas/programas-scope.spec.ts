@@ -321,7 +321,7 @@ describe('ProgramasService — scopes institucionales (FASE 3)', () => {
   // ── 18. Scope check sólo para DC y DECANO ────────────────────────────────
 
   describe('Scope check — únicamente para DIRECTOR_CARRERA y DECANO', () => {
-    it.each(['SECRETARIA_ACADEMICA', 'RECTORADO'])(
+    it.each(['SECRETARIA_ACADEMICA', 'RECTORADO', 'ADMINISTRADOR_SISTEMA'])(
       '%s no invoca tieneScopeCarrera',
       async (rol) => {
         const prisma = makePrisma({});
@@ -330,6 +330,26 @@ describe('ProgramasService — scopes institucionales (FASE 3)', () => {
         expect(scope.tieneScopeCarrera).not.toHaveBeenCalled();
       }
     );
+  });
+
+  // ── 19. ADMINISTRADOR_SISTEMA — scope global ──────────────────────────────
+
+  describe('ADMINISTRADOR_SISTEMA — scope global', () => {
+    it('puede editar sin verificar scope de carrera', async () => {
+      const prisma = makePrisma({});
+      const scope = makeScopeService(true);
+      await makeService(prisma, scope).actualizarPrograma(MATERIA_ID, {}, USUARIO_ID, 'ADMINISTRADOR_SISTEMA');
+      expect(scope.tieneScopeCarrera).not.toHaveBeenCalled();
+      expect(prisma.programaAsignatura.upsert).toHaveBeenCalled();
+    });
+
+    it('no llama a tieneScopeCarrera ni a docente.findUnique', async () => {
+      const prisma = makePrisma({});
+      const scope = makeScopeService(true);
+      await makeService(prisma, scope).actualizarPrograma(MATERIA_ID, {}, USUARIO_ID, 'ADMINISTRADOR_SISTEMA');
+      expect(scope.tieneScopeCarrera).not.toHaveBeenCalled();
+      expect(prisma.docente.findUnique).not.toHaveBeenCalled();
+    });
   });
 
   // ── 19-21. obtenerPrograma — APROBADO histórico conservado ───────────────

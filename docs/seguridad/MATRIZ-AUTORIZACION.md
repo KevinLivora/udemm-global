@@ -159,13 +159,14 @@
 | Endpoint | Método | Auth | Roles | Ownership / Scope | Estado | Riesgo |
 |----------|--------|------|-------|-------------------|--------|--------|
 | `/programas/materia/:materiaId` | GET | JWT | Todos los roles | — | OK | OK |
-| `/programas/materia/:materiaId` | PATCH | JWT | DIRECTOR_CARRERA, DECANO, SECRETARIA_ACADEMICA, RECTORADO | ✅ DC: scope carrera · ✅ DECANO: scope facultad · SEC/REC: global | ✅ FASE 3 | OK |
+| `/programas/materia/:materiaId` | PATCH | JWT | ADMINISTRADOR_SISTEMA, DIRECTOR_CARRERA, DECANO, SECRETARIA_ACADEMICA, RECTORADO | ✅ ADMIN: global · ✅ DC: scope carrera · ✅ DECANO: scope facultad · SEC/REC: global | ✅ FASE 3 | OK |
 
 **FASE 3 — Scopes Institucionales y política definitiva de roles (C8):**
 - `DIRECTOR_CARRERA`: solo puede editar programas de la Carrera que tiene asociada (`UsuarioCarrera`). Acceso a otras carreras → 403.
 - `DECANO`: solo puede editar programas de Carreras pertenecientes a su Facultad (`UsuarioFacultad`). Acceso a carreras de otra facultad → 403.
+- `ADMINISTRADOR_SISTEMA`: scope global, sin restricción territorial. Mismos permisos de edición que `SECRETARIA_ACADEMICA`.
 - `SECRETARIA_ACADEMICA`, `RECTORADO`: scope global, sin restricción territorial.
-- `DOCENTE`, `ADMINISTRADOR_SISTEMA`, `ADMINISTRATIVO`: **solo lectura** — no están en `ROLES_EDITAR`. `PATCH /programas/materia/:materiaId` devuelve 403 para estos roles.
+- `DOCENTE`, `ADMINISTRATIVO`: **solo lectura** — no están en `ROLES_EDITAR`. `PATCH /programas/materia/:materiaId` devuelve 403 para estos roles.
 - Endpoint `POST /aprobar` **eliminado**. El flujo de aprobación deja de usarse funcionalmente.
 - `estadoPrograma = 'APROBADO'` histórico se **conserva intacto** en BD tanto al consultar como al editar. Solo se recalcula PENDIENTE/EN_REVISION para programas que no eran APROBADO.
 - No se generan nuevas entradas de tipo `APROBACION` en historial; las existentes son visibles en la ficha.
@@ -309,7 +310,7 @@
 ### Política de ownership definitiva (VinculacionCatedra — solo módulo Vinculaciones)
 
 > **FASE 3:** El ownership por `VinculacionCatedra` ya **no aplica a Programas de Asignatura**.
-> DOCENTE es solo lectura en Programas. La tabla de estados aplica únicamente al módulo de Vinculaciones.
+> DOCENTE y ADMINISTRATIVO son solo lectura en Programas. La tabla de estados aplica únicamente al módulo de Vinculaciones.
 
 Estados del modelo `VinculacionCatedra` confirmados en código:
 

@@ -16,6 +16,7 @@ export function getPermisosPrograma(rolNombre: string): PermisosPrograma {
     case 'RECTORADO':
       return { ver: true, editar: true, exportar: true };
     case 'ADMINISTRADOR_SISTEMA':
+      return { ver: true, editar: true, exportar: true };
     case 'ADMINISTRATIVO':
       return { ver: true, editar: false, exportar: true };
     case 'DOCENTE':
