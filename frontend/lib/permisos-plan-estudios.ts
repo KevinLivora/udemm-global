@@ -2,27 +2,27 @@ export interface PermisosPrograma {
   ver: boolean;
   editar: boolean;
   exportar: boolean;
+  aprobar: boolean;
 }
 
-// FASE 3 — Scopes Institucionales aplicados a Programas de Asignatura.
 // La propiedad `editar` indica permiso genérico de edición por rol.
+// La propiedad `aprobar` indica permiso para aprobar o solicitar correcciones en la Bandeja.
 // La restricción de scope (carrera/facultad) se aplica adicionalmente en el componente.
-// El flujo de aprobación fue eliminado de la experiencia de usuario.
 export function getPermisosPrograma(rolNombre: string): PermisosPrograma {
   switch (rolNombre) {
     case 'DIRECTOR_CARRERA':
     case 'DECANO':
     case 'SECRETARIA_ACADEMICA':
     case 'RECTORADO':
-      return { ver: true, editar: true, exportar: true };
+      return { ver: true, editar: true, exportar: true, aprobar: true };
     case 'ADMINISTRADOR_SISTEMA':
-      return { ver: true, editar: true, exportar: true };
+      return { ver: true, editar: true, exportar: true, aprobar: false };
     case 'ADMINISTRATIVO':
-      return { ver: true, editar: false, exportar: true };
+      return { ver: true, editar: false, exportar: true, aprobar: false };
     case 'DOCENTE':
-      return { ver: true, editar: false, exportar: false };
+      return { ver: true, editar: false, exportar: false, aprobar: false };
     default:
-      return { ver: false, editar: false, exportar: false };
+      return { ver: false, editar: false, exportar: false, aprobar: false };
   }
 }
 

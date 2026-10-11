@@ -33,7 +33,7 @@ export class CrearNormativaDto {
   areaEmisora: string;
 
   @IsString()
-  @Matches(/^\d+$/, { message: 'El N° de norma debe ser numérico (ej: 002, 31, 4702)' })
+  @Matches(/^[A-Za-z0-9][A-Za-z0-9\-\/]*$/, { message: 'El N° de norma solo puede contener letras, números, guiones y barras (ej: 002, RES-123, ORD-045/2026)' })
   @IsNotEmpty({ message: 'El N° de norma es obligatorio' })
   numeroNorma: string;
 

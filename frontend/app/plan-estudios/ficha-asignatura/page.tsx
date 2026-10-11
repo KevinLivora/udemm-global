@@ -7,6 +7,7 @@ import { useAuth } from '@/lib/auth-context';
 import { apiFetch as apiFetchBase, mensajeErrorHttp } from '@/lib/api';
 import { getPermisosPlanEstudio, getPermisosPrograma, PermisosPrograma } from '@/lib/permisos-plan-estudios';
 import { normalizarMayusculas } from '@/lib/normalizarMayusculas';
+import { ModalHistorialPrograma } from '@/app/bandeja-aprobaciones/_components/ModalHistorialPrograma';
 
 // ── Constantes ────────────────────────────────────────────────────────────────
 
@@ -125,6 +126,8 @@ interface ProgramaAsignatura {
   fechaUltimaActualizacion?: string;
   observacionesGestion?: string;
   estadoPrograma: string;
+  estadoFuncional?: string; // devuelto por el backend — INCOMPLETO|COMPLETO|EN_CORRECCION|EN_REVISION|APROBADO
+  solicitudActual?: { id: string; estado: string; observaciones?: string | null; aprobador?: { nombre: string; apellido: string } | null } | null;
   fechaAprobacion?: string;
   resolucionAprobacion?: string;
   observacionesGenerales?: string;
@@ -1362,6 +1365,13 @@ const ESTADO_PROG_CFG: Record<string, { label: string; cls: string }> = {
   APROBADO:    { label: 'Aprobado',    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
 };
 
+const ESTADO_FUNC_CFG: Record<string, { label: string; cls: string }> = {
+  INCOMPLETO:    { label: 'Incompleto',    cls: 'bg-slate-100 text-slate-500 border-slate-200' },
+  EN_CORRECCION: { label: 'En corrección', cls: 'bg-orange-50 text-orange-700 border-orange-200' },
+  EN_REVISION:   { label: 'En revisión',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  APROBADO:      { label: 'Aprobado',      cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+};
+
 const ACCION_PROG_CFG: Record<string, { label: string; cls: string }> = {
   ACTUALIZACION: { label: 'Actualización', cls: 'bg-blue-50 text-blue-700 border-blue-200' },
   APROBACION:    { label: 'Aprobación',    cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
@@ -1568,6 +1578,7 @@ function ProgramaView({
   const [guardando, setGuardando] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [historialPagina, setHistorialPagina] = useState(1);
+  const [historialAbierto, setHistorialAbierto] = useState(false);
 
   useEffect(() => {
     setCargando(true);
@@ -1810,6 +1821,9 @@ function ProgramaView({
   if (!programa) return <div className="p-8 text-center text-xs text-slate-400">{errorMsg ?? 'No se pudo cargar el programa.'}</div>;
 
   const estadoProgCfg = ESTADO_PROG_CFG[programa.estadoPrograma] ?? ESTADO_PROG_CFG.PENDIENTE;
+  // El backend devuelve estadoFuncional calculado; usarlo directamente para evitar duplicar reglas de negocio.
+  const estadoFuncional = programa.estadoFuncional ?? 'INCOMPLETO';
+  const estadoFuncCfg = ESTADO_FUNC_CFG[estadoFuncional] ?? ESTADO_FUNC_CFG.INCOMPLETO;
   const cellCls = 'w-full text-sm border border-slate-200 rounded px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-[#0f4c81]/20 focus:border-[#0f4c81] resize-none';
   const compFilas = tryParseJson<CompetenciaFila[]>(programa.competenciasResultadosJson) ?? [];
   const contFilas   = tryParseJson<ContenidoFila[]>(programa.contenidosGridJson) ?? [];
@@ -1827,8 +1841,8 @@ function ProgramaView({
       {/* Header del programa */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-slate-50/60">
         <div className="flex items-center gap-3 flex-wrap">
-          <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${estadoProgCfg.cls}`}>
-            {estadoProgCfg.label}
+          <span className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full border ${estadoFuncCfg.cls}`}>
+            {estadoFuncCfg.label}
           </span>
           <span className="text-[11px] text-slate-400">
             {completadas}/{SECCIONES_PROGRAMA.length} secciones completas
@@ -1840,6 +1854,15 @@ function ProgramaView({
           )}
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setHistorialAbierto(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-100 transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Historial
+          </button>
           {permisosPrograma.exportar && (
             <button
               onClick={() => exportarProgramaPDF(ficha, programa)}
@@ -1853,6 +1876,14 @@ function ProgramaView({
           )}
         </div>
       </div>
+
+      {historialAbierto && (
+        <ModalHistorialPrograma
+          materiaId={materiaId}
+          materiaNombre={ficha.nombre}
+          onCerrar={() => setHistorialAbierto(false)}
+        />
+      )}
 
       {/* ── Indicador de completitud ─────────────────────────────────── */}
       {(() => {

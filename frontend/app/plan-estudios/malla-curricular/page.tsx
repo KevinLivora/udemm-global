@@ -18,7 +18,7 @@ const NAV_INTERNA = [
   { label: 'Información de Planes de Estudio', href: '/plan-estudios/informacion-planes' },
 ];
 
-const TIPOS_ASIGNATURA = ['OBLIGATORIA', 'ELECTIVA', 'OPTATIVA'];
+const TIPOS_ASIGNATURA = ['OBLIGATORIA', 'ELECTIVA'];
 const ESTADOS_ASIGNATURA = ['ACTIVO', 'INACTIVO'];
 const ESTADOS_PLAN = ['ACTIVO', 'INACTIVO', 'EN_REVISION'];
 

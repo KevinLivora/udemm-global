@@ -21,7 +21,7 @@ export class ActualizarNormativaDto {
   areaEmisora: string;
 
   @IsString()
-  @Matches(/^\d+/)
+  @Matches(/^[A-Za-z0-9][A-Za-z0-9\-\/]*$/)
   @IsNotEmpty()
   numeroNorma: string;
 

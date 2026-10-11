@@ -61,8 +61,25 @@ function makePrisma(opts: {
     historialPrograma: {
       create: jest.fn().mockResolvedValue({}),
     },
+    solicitudAprobacionPrograma: {
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      findFirst:  jest.fn().mockResolvedValue(null),
+      create:     jest.fn().mockResolvedValue({ id: 'sol-id' }),
+    },
     docente:            { findUnique: jest.fn().mockResolvedValue(null) },
     vinculacionCatedra: { findFirst: jest.fn().mockResolvedValue(null) },
+    usuario: {
+      findUnique: jest.fn().mockResolvedValue({ nombre: 'Test', apellido: 'User' }),
+      findMany:   jest.fn().mockResolvedValue([]),
+    },
+    notificacion: {
+      findFirst:  jest.fn().mockResolvedValue(null),
+      create:     jest.fn().mockResolvedValue({}),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    mensajeCorrecionPrograma: {
+      create: jest.fn().mockResolvedValue({ id: 'msg-id' }),
+    },
   };
   // $transaction llama el callback con el mismo mock (tx === prisma)
   prisma.$transaction = jest.fn().mockImplementation((cb: any) => cb(prisma));

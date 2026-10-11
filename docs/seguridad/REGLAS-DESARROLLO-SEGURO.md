@@ -314,9 +314,9 @@ Un usuario con rol DOCENTE sin perfil docente (sin registro en tabla `Docente`) 
 
 ### 6.4 Alcance del ownership DOCENTE
 
-El ownership aplica únicamente a:
+El ownership aplica a:
 - ✅ `PATCH /materias/:id` — modificar datos de la materia
-- ✅ `PATCH /programas/materia/:materiaId` — modificar el programa de asignatura
+- ✅ `PATCH /programas/materia/:materiaId` — modificar el programa de asignatura (C10: DOCENTE requiere VinculacionCatedra APROBADA para esa asignatura)
 
 No aplica a:
 - Lectura (`GET`) de materias o programas — sin restricción por rol
@@ -674,7 +674,7 @@ Para tokens de un solo uso (ej: recuperación de contraseña): `crypto.randomByt
 |--------|-------------------|----------------------|
 | Normativas | `AuditLogNormativa` | CARGA, EDICION, CAMBIO_ESTADO, BAJA_LOGICA, DESCARGA, EXPORTACION, ACCESO_DENEGADO |
 | Materias | `HistorialMateria` | CREACION, ACTUALIZACION, BAJA |
-| Programas | `HistorialPrograma` | ACTUALIZACION, REVERSION, APROBACION |
+| Programas | `HistorialPrograma` | ACTUALIZACION, REVERSION, APROBACION, CORRECCIONES_SOLICITADAS |
 | Sesiones | `Sesion` | Login (creación de sesión), Logout (desactivación), desactivación por password reset |
 
 ### 16.2 Acciones sin auditoría
@@ -758,13 +758,27 @@ Todo nuevo módulo (controller + service) debe verificar:
 
 ### 19.1 Suites implementadas
 
-✅ 53/53 tests de seguridad pasando (S1–S4):
+✅ 296/296 tests unitarios de seguridad pasando (S1–S4 + Circuito de Aprobación + C10 + C11 + C12 + C13 + C14 + C15 + C16 + C16.2 + C16.3) + 1 test de integración contra PostgreSQL real (`programas-c162-concurrencia.spec.ts`):
 
 | Suite | Tests | Cobertura |
 |-------|-------|-----------|
 | `jwt-strategy.spec.ts` | 6 | Sin sesionId → payload tal cual; sesión inexistente → 401; sesión inactiva → 401; usuario.activo=false → 401; rol cambiado en BD → nuevo rol; rol sin cambio → pasa |
 | `materias-ownership.spec.ts` | 9 | Sin perfil docente → 403; sin vinculación → 403; PENDIENTE → 403; RECHAZADA → 403; DESVINCULADA → 403; APROBADA → OK; IDOR Materia B → 403; ADMINISTRADOR sin check → OK; SECRETARIA sin check → OK |
-| `programas-ownership.spec.ts` | 9 | Mismos escenarios de materias + DIRECTOR_CARRERA sin check → OK |
+| `programas-ownership.spec.ts` | 12 | SECRETARIA sin checks → OK; DIRECTOR_CARRERA en/fuera scope → OK/403; DOCENTE con vinculación APROBADA → OK; DOCENTE sin perfil → 403; DOCENTE sin vinculación → 403; DOCENTE IDOR asignatura ajena → 403 |
+| `programas-scope.spec.ts` | 26 | SECRETARIA/RECTORADO scope global; DIRECTOR_CARRERA en/fuera scope; DECANO en/fuera scope; APROBADO histórico conservado; estadoPrograma calculado; historial atómico; validación horasClase; ADMINISTRADOR_SISTEMA scope global |
+| `programas-aprobacion.spec.ts` | 28 | Solicitud al 100%; sin duplicados; invalidación por avance; visibilidad por scope (4 roles); aprobación por 4 roles; fuera de scope → 403; ADMIN excluido de ROLES_APROBAR; race condition → ConflictException; correcciones con observaciones; ciclo completo; cambio sustancial; cambio admin. sin re-aprobación; historial preservado; BadRequest si programa < 100% al aprobar |
+| `programas-conversacion.spec.ts` | 16 | solicitarCorrecciones crea mensaje CORRECCION; DOCENTE con vinculación lee mensajes; DOCENTE sin vinculación → 403; 4 docentes → 4 notificaciones sin duplicados; DOCENTE envía RESPUESTA; directivo con scope lee; leido=false por defecto; marcarLeidos + limpieza notif; DOCENTE no en ROLES_APROBAR; directivo fuera scope → 403; orden cronológico; respuesta sin solicitud activa → ConflictException; sin perfil docente → 403; contadoresNovedades tipos correctos |
+| `programas-estados.spec.ts` | 25 | calcEstadoFuncional 9 casos (pura, C13: 4 estados); obtenerPrograma incluye estadoFuncional; actualizarPrograma retorna estadoFuncional; historial: SECRETARIA/RECTORADO sin validar scope; DC/DECANO con/sin scope → OK/403; DOCENTE con/sin vinculación → OK/403; datos completos con mensajes anidados; materia sin programa → vacío |
+| `programas-c13.spec.ts` | 24 | calcEstadoFuncional 4 estados (COMPLETO eliminado); solicitud auto al 100%; sin duplicados con PENDIENTE activa; CORRECCIONES activas → sin nueva solicitud; cambio sustancial invalida CORRECCIONES; notificaciones a SA/REC/DC/DECANO con scope correcto; scope errado → sin notificación; inactivos excluidos; deduplicación por usuarioId; DOCENTE reenvía → PENDIENTE_APROBACION; reenvío < 100% → BadRequest; regularización identifica/excluye correctamente |
+| `programas-c14.spec.ts` | 28 | Fix ERROR 1: estadoFuncional EN_CORRECCION (no APROBADO) tras solicitarCorrecciones; reset estadoPrograma a EN_REVISION; contenido notificación con observaciones/solicitudId/directivo; sin duplicado de notificación; reenvío rechaza contenido vacío/espacios; reenvío rechaza programa<100%; reenvío rechaza PENDIENTE→ConflictException; sin vinculación→403; ciclo reactiva a PENDIENTE_APROBACION; historial en respuesta; notificarDirectivos al reenviar; segundo ciclo soportado; obtenerCorrecionesDocente filtra APROBADA; sin perfil→403; directivo envía en PENDIENTE y CORRECCIONES; contenido vacío directivo→BadRequest; marcarMensajesLeidos CORRECCION para DOCENTE |
+| `programas-c15.spec.ts` | 14 | Notificación APROBACION_PROGRAMA al docente tras aprobación; docenteId correcto; cuerpo con materia/carrera/plan/directivo/fechaAprobacion; materiaId para enlace VER PROGRAMA; nombre del aprobador; múltiples docentes → múltiples notificaciones; sin vinculación → sin notificación; deduplicación; aprobación fallida → sin notificación; solicitudProgramaId ligado; tipo APROBACION_PROGRAMA; historial conservado; ForbiddenException notificación ajena |
+| `programas-c16.spec.ts` | 12 | `calcEstadoFuncional` 12 casos: 17% → INCOMPLETO; 100% sin solicitud → EN_REVISION (fix clave); 100% PENDIENTE_APROBACION → EN_REVISION; CORRECCIONES activas → EN_CORRECCION; APROBADO → APROBADO; todasCompletas=true nunca devuelve INCOMPLETO; programa histórico pre-circuito → EN_REVISION; listarProgramasParaRegularizacion solo lectura (sin create/update) |
+| `programas-c162.spec.ts` | 12 | `generarSolicitudesRegularizacion`: programa completo → GENERADA; incompleto → OMITIDO; aprobado → OMITIDO; correcciones activas → OMITIDO; pendiente existente → OMITIDO con solicitudId; idempotencia (segunda ejecución → OMITIDO); concurrencia (race condition in-tx → OMITIDO sin duplicar); notificaciones a directivos; historial REGULARIZACION_HISTORICA; RBAC endpoint; NotFoundException programa inexistente; fallo transaccional — **$queryRaw mock actualizado en C16.3** |
+| `programas-c162-concurrencia.spec.ts` | 1 (integración) | **Test de integración real contra PostgreSQL (C16.3):** `Promise.all` con dos solicitudes concurrentes → exactamente una GENERADA + una OMITIDO; BD: 1 solicitud PENDIENTE_APROBACION; 1 historial REGULARIZACION_HISTORICA. Requiere conexión activa a PostgreSQL. Fixtures con prefijo `[TEST-C162]`; limpieza completa en `afterAll` |
+| `scope.spec.ts` | 22 | Scopes por rol; limpieza de scopes residuales; scope global vs. restringido |
+| `vinculaciones-situacion-actual.spec.ts` | 14 | Situación actual de vinculaciones |
+| `usuarios-scope.spec.ts` | 12 | Scopes en gestión de usuarios |
+| `docentes-baja-logica.spec.ts` | varies | Baja lógica de docentes |
 | `csrf.middleware.spec.ts` | 21 | GET/HEAD/OPTIONS → pasan; CSRF_SKIP_PATHS → pasan; Origin ausente → 403; Origin incorrecto → 403; sin X-Requested-With → 403; credenciales completas → pasan; refresh/logout sin Origin → 403; refresh/logout legítimos → pasan |
 | `throttle.spec.ts` | 8 | Límites específicos de login, refresh, recovery, reset |
 
@@ -876,7 +890,7 @@ Usar antes de hacer merge de cualquier cambio que toque autenticación, autoriza
 Antes de considerar implementada una corrección de seguridad:
 
 1. **Build:** `npm run build` en backend → 0 errores TypeScript. `npm run build` en frontend → 0 errores, todas las páginas generadas.
-2. **Tests:** todas las suites de seguridad pasan (actualmente 53/53). Los nuevos controles tienen tests unitarios.
+2. **Tests:** todas las suites de seguridad pasan (actualmente 296/296). Los nuevos controles tienen tests unitarios.
 3. **Documentación:** el hallazgo y su corrección están registrados en el archivo `FASE-Sx` correspondiente y la MATRIZ-AUTORIZACION está actualizada.
 4. **Sin riesgos residuales no documentados:** si un riesgo queda sin corregir, debe estar explícitamente documentado en el archivo de fase con justificación.
 
@@ -888,6 +902,16 @@ Antes de considerar implementada una corrección de seguridad:
 | S2 | ✅ IMPLEMENTADO | Build verificado | Tokens HttpOnly, sesiones revocables, refresh rotation |
 | S3 | ✅ IMPLEMENTADO | 29/29 | Helmet, CORS hardening, CSRF, rate limiting, headers |
 | S4 | ✅ IMPLEMENTADO | 53/53 | RBAC, ownership DOCENTE, rol desde BD, desactivación inmediata |
+| Circuito Aprobación | ✅ IMPLEMENTADO | 159/159 | ROLES_APROBAR sin ADMIN; scope filtering; race condition; DTOs validados; historial |
+| C10 DOCENTE Programas | ✅ IMPLEMENTADO | 162/162 | DOCENTE puede editar programa con VinculacionCatedra APROBADA; sin perfil → 403; IDOR a otra asignatura → 403 |
+| C11 Comunicación Bidireccional | ✅ IMPLEMENTADO | 181/181 | DOCENTE↔DIRECTIVO mensajes de corrección; IDOR → 403; estado inválido → ConflictException; notificaciones individuales por docente; marcar leídos + badge sidebar |
+| C12 Estados Funcionales + Historial | ✅ IMPLEMENTADO | 206/206 | 5 estados visibles derivados (INCOMPLETO/COMPLETO/EN_CORRECCION/EN_REVISION/APROBADO); historial compartido con scope; DOCENTE requiere VinculacionCatedra; DC/DECANO: scope carrera/facultad; SEC/REC/ADMIN: global |
+| C13 Unificación Estados + Notif. Automáticas | ✅ IMPLEMENTADO | 230/230 | COMPLETO eliminado → 4 estados; solicitud auto al 100%; notificaciones a directivos con scope; DOCENTE reenvío reactiva solicitud; GET /programas/regularizacion (solo lectura); polling 30s en frontend |
+| C14 Corrección circuito aprobación + comunicación | ✅ IMPLEMENTADO | 258/258 | solicitarCorrecciones resets estadoPrograma→EN_REVISION (fix APROBADO bug); enviarMensaje valida contenido no vacío; modal notificación CORRECCIONES_PROGRAMA muestra observaciones + botón Ver correcciones; DatosNotificacion extiende campos; 28 tests |
+| C15 Notificación aprobación definitiva docente | ✅ IMPLEMENTADO | 272/272 | aprobarSolicitud crea notificación APROBACION_PROGRAMA para cada docente con vinculación APROBADA; cuerpo incluye materiaId/materia/carrera/plan/directivo/fechaAprobacion; deduplicación; frontend: badge + modal con campos + botón VER PROGRAMA; 14 tests |
+| C16 Corrección inconsistencia COMPLETITUD vs ESTADO FUNCIONAL | ✅ IMPLEMENTADO | 284/284 | `calcEstadoFuncional` aceptaba `todasCompletas` pero nunca la usaba — fallback devolvía INCOMPLETO para cualquier programa sin solicitud activa; programas históricos al 100% (pre-circuito, `estadoPrograma='PENDIENTE'`) mostraban INCOMPLETO pese a COMPLETITUD=COMPLETO y AVANCE=100%; fix: añadida rama `if (!todasCompletas) return 'INCOMPLETO'` y fallback cambiado a `return 'EN_REVISION'`; sin cambios en BD, sin migraciones; 12 tests nuevos + 3 tests actualizados en programas-estados.spec.ts |
+| C16.2 Endpoint regularización histórica | ✅ IMPLEMENTADO | 296/296 | `POST /programas/regularizacion/generar`: genera `SolicitudAprobacionPrograma PENDIENTE_APROBACION` para programas 100% sin solicitud activa; recibe `programaIds[]` explícitos (no masivo automático); pre-checks + re-verificación dentro de `$transaction` (race condition protection); idempotente (segunda ejecución → OMITIDO); genera `HistorialPrograma accion='REGULARIZACION_HISTORICA'`; notifica directivos via `notificarDirectivos` existente; respuesta detallada por programa (GENERADA/OMITIDO + motivo); `GenerarRegularizacionDto` con `@IsUUID` + `@ArrayNotEmpty`; roles: ADMINISTRADOR_SISTEMA y SECRETARIA_ACADEMICA solamente; sin nuevas migraciones |
+| C16.3 Refuerzo de concurrencia en regularización | ✅ IMPLEMENTADO | 296/296 unit + 1 integración | `SELECT ... FOR UPDATE` en PostgreSQL dentro de `$transaction` como primera operación: bloquea la fila `ProgramaAsignatura` a nivel de motor de BD, serializando transacciones concurrentes para el mismo programa. Segunda transacción espera liberación del lock y luego detecta solicitud ya creada (OMITIDO). Sin nuevas migraciones. Mock `$queryRaw` en `programas-c162.spec.ts` (296/296 sin regresiones). Test de integración real: `programas-c162-concurrencia.spec.ts` con `Promise.all` de dos llamadas concurrentes — verifica exactamente 1 solicitud + 1 historial en BD. `actualizarPrograma`, `aprobarSolicitud` y `enviarMensaje` son compatibles (upsert/update implican write locks; flujo normal no contende con regularización) |
 
 ### Riesgos residuales documentados (abiertos)
 

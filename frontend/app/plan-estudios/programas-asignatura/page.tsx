@@ -42,6 +42,7 @@ interface ProgramaResumen {
   estadoS1: string; estadoS2: string; estadoS3: string;
   estadoS4: string; estadoS5: string; estadoS6: string;
   estadoPrograma: string;
+  estadoFuncional?: string; // devuelto por el backend — INCOMPLETO|EN_CORRECCION|EN_REVISION|APROBADO
 }
 
 type EstadoLabel = 'Sin iniciar' | 'En proceso' | 'Completo';
@@ -51,6 +52,7 @@ interface MateriaConPrograma extends MateriaResumen {
   avancePct: number;       // avance del Programa de Asignatura (S1–S6)
   estadoLabel: EstadoLabel;
   estadoPrograma: string;  // estado formal del programa (PENDIENTE / EN_REVISION / APROBADO)
+  estadoFuncional: string; // INCOMPLETO | COMPLETO | EN_CORRECCION | EN_REVISION | APROBADO
   avanceGlobal: number;    // promedio de las 4 solapas (Datos Gen. + Corr. + Carga H. + Programa)
 }
 
@@ -113,6 +115,13 @@ function calcAvanceGlobal(
 
   return Math.round((dgPct + corrPct + chPct + progPct) / 4);
 }
+
+const ESTADO_FUNC_CFG: Record<string, { label: string; cls: string }> = {
+  INCOMPLETO:    { label: 'Incompleto',    cls: 'bg-slate-100 text-slate-500 border-slate-200' },
+  EN_CORRECCION: { label: 'En corrección', cls: 'bg-orange-50 text-orange-700 border-orange-200' },
+  EN_REVISION:   { label: 'En revisión',   cls: 'bg-amber-50 text-amber-700 border-amber-200' },
+  APROBADO:      { label: 'Aprobado',      cls: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+};
 
 const IcSpinner = () => (
   <div className="w-5 h-5 rounded-full border-2 border-slate-200 border-t-[#0f4c81] animate-spin" />
@@ -223,7 +232,9 @@ export default function ProgramasAsignaturaPage() {
           const { pct, label } = calcAvance(prog);
           const avanceGlobal   = calcAvanceGlobal(m, prog, corrCount);
           const estadoPrograma = prog?.estadoPrograma ?? 'PENDIENTE';
-          return { ...m, programa: prog, avancePct: pct, estadoLabel: label, estadoPrograma, avanceGlobal };
+          // El backend ya calcula estadoFuncional y lo devuelve en la respuesta.
+          const estadoFuncional = prog?.estadoFuncional ?? 'INCOMPLETO';
+          return { ...m, programa: prog, avancePct: pct, estadoLabel: label, estadoPrograma, estadoFuncional, avanceGlobal };
         });
         setMaterias(enriched);
       })
@@ -634,7 +645,8 @@ export default function ProgramasAsignaturaPage() {
                         <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide">Asignatura</th>
                         <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-16">Año</th>
                         <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-28">Completitud</th>
-                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-48">Avance</th>
+                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-36">Estado</th>
+                        <th className="text-left px-4 py-3 font-semibold text-slate-500 uppercase tracking-wide w-40">Avance</th>
                         <th className="px-4 py-3 w-44 text-right font-semibold text-slate-500 uppercase tracking-wide">Acciones</th>
                       </tr>
                     </thead>
@@ -694,12 +706,14 @@ function FilaPrograma({
   puedeCompletar: boolean;
   router: ReturnType<typeof useRouter>;
 }) {
-  const { avancePct, estadoLabel } = materia;
+  const { avancePct, estadoLabel, estadoFuncional } = materia;
 
   const estadoCls =
     estadoLabel === 'Completo'  ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
     estadoLabel === 'En proceso'? 'bg-amber-50 text-amber-700 border-amber-200' :
                                   'bg-slate-100 text-slate-500 border-slate-200';
+
+  const funcCfg = ESTADO_FUNC_CFG[estadoFuncional] ?? ESTADO_FUNC_CFG.INCOMPLETO;
 
   const barCls =
     avancePct === 100 ? 'bg-emerald-500' :
@@ -740,6 +754,13 @@ function FilaPrograma({
       <td className="px-4 py-3">
         <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded border whitespace-nowrap ${estadoCls}`}>
           {estadoLabel}
+        </span>
+      </td>
+
+      {/* Estado institucional */}
+      <td className="px-4 py-3">
+        <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full border whitespace-nowrap ${funcCfg.cls}`}>
+          {funcCfg.label}
         </span>
       </td>
 

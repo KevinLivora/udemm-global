@@ -146,6 +146,8 @@ model ProgramaAsignatura {
   formacionPracticaJson        String?
   actividadesFormacionPractica String?
   historial                    HistorialPrograma[]
+  solicitudes                  SolicitudAprobacionPrograma[]
+  mensajesCorrecion            MensajeCorrecionPrograma[]
   materia                    Materia             @relation(fields: [materiaId], references: [id], onDelete: Cascade)
 }
 
@@ -238,11 +240,14 @@ model Usuario {
   tokensRecuperacion         TokenRecuperacion[]
   tokensRefresh              TokenRefresh[]
   rol                        Rol                  @relation(fields: [rolId], references: [id])
-  vinculacionesAprobadas     VinculacionCatedra[] @relation("VinculacionAprobador")
-  vinculacionesDesvinculadas VinculacionCatedra[] @relation("VinculacionDesvinculador")
-  vinculacionesSolicitadas   VinculacionCatedra[] @relation("VinculacionSolicitante")
-  carrerasAsociadas          UsuarioCarrera[]
-  facultadesAsociadas        UsuarioFacultad[]
+  vinculacionesAprobadas          VinculacionCatedra[] @relation("VinculacionAprobador")
+  vinculacionesDesvinculadas      VinculacionCatedra[] @relation("VinculacionDesvinculador")
+  vinculacionesSolicitadas        VinculacionCatedra[] @relation("VinculacionSolicitante")
+  carrerasAsociadas               UsuarioCarrera[]
+  facultadesAsociadas             UsuarioFacultad[]
+  solicitudesProgramasAprobadas   SolicitudAprobacionPrograma[] @relation("SolicitudProgramaAprobador")
+  mensajesCorrecion               MensajeCorrecionPrograma[]
+  notificaciones                  Notificacion[]
 }
 
 model Sesion {
@@ -543,17 +548,22 @@ model HistorialEstadoNormativa {
 }
 
 model Notificacion {
-  id                 String    @id @default(uuid())
-  tipo               String
-  titulo             String
-  cuerpo             String
-  leida              Boolean   @default(false)
-  fechaLectura       DateTime?
-  docenteId          String
-  vinculacionId      String?
-  fechaCreacion      DateTime  @default(now())
-  fechaActualizacion DateTime  @updatedAt
-  docente            Docente   @relation(fields: [docenteId], references: [id])
+  id                   String    @id @default(uuid())
+  tipo                 String
+  titulo               String
+  cuerpo               String
+  leida                Boolean   @default(false)
+  fechaLectura         DateTime?
+  docenteId            String?
+  usuarioId            String?
+  vinculacionId        String?
+  solicitudProgramaId  String?
+  fechaCreacion        DateTime  @default(now())
+  fechaActualizacion   DateTime  @updatedAt
+  docente              Docente?  @relation(fields: [docenteId], references: [id])
+  usuario              Usuario?  @relation(fields: [usuarioId], references: [id])
+
+  @@index([usuarioId])
 }
 
 model AuditLogNormativa {
@@ -602,4 +612,49 @@ model UsuarioFacultad {
   facultad           Facultad @relation(fields: [facultadId], references: [id])
 
   @@unique([usuarioId, facultadId])
+}
+
+// ── Circuito de aprobación de Programas de Asignatura ───────────────────────
+// estados: PENDIENTE_APROBACION | APROBADO | CORRECCIONES_SOLICITADAS | INVALIDADA
+// Una solicitud PENDIENTE_APROBACION se genera automáticamente cuando el programa
+// alcanza 100% de avance. Los roles aprobadores son los definidos en RBAC.
+
+model SolicitudAprobacionPrograma {
+  id              String                      @id @default(uuid())
+  programaId      String
+  estado          String                      @default("PENDIENTE_APROBACION")
+  fechaCreacion   DateTime                    @default(now())
+  fechaResolucion DateTime?
+  aprobadorId     String?
+  observaciones   String?
+  programa        ProgramaAsignatura          @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  aprobador       Usuario?                    @relation("SolicitudProgramaAprobador", fields: [aprobadorId], references: [id])
+  mensajes        MensajeCorrecionPrograma[]
+
+  @@index([programaId, estado])
+}
+
+// ── Conversación DOCENTE ↔ DIRECTIVO sobre correcciones de Programas ─────────
+// tipo: CORRECCION (enviado por directivo) | RESPUESTA (enviado por docente)
+// leido: el destinatario del mensaje lo leyó:
+//   CORRECCION → destinatario es el DOCENTE (leido=true cuando abre la conversación)
+//   RESPUESTA  → destinatario es el DIRECTIVO
+
+model MensajeCorrecionPrograma {
+  id            String                      @id @default(uuid())
+  solicitudId   String
+  programaId    String
+  usuarioId     String
+  rolNombre     String
+  contenido     String
+  tipo          String
+  leido         Boolean                     @default(false)
+  fechaLectura  DateTime?
+  fechaCreacion DateTime                    @default(now())
+  solicitud     SolicitudAprobacionPrograma @relation(fields: [solicitudId], references: [id], onDelete: Cascade)
+  programa      ProgramaAsignatura          @relation(fields: [programaId], references: [id], onDelete: Cascade)
+  usuario       Usuario                     @relation(fields: [usuarioId], references: [id])
+
+  @@index([solicitudId])
+  @@index([programaId])
 }

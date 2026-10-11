@@ -247,8 +247,8 @@ export function NormativaForm({
     if (!form.fechaEmision)                          e.fechaEmision    = 'La fecha de emisión es obligatoria';
     else if (form.fechaEmision > HOY_ISO)            e.fechaEmision    = 'La fecha no puede ser futura';
     if (!form.areaEmisora)                           e.areaEmisora     = 'El área emisora es obligatoria';
-    if (!form.numeroNorma.trim())                    e.numeroNorma     = 'El N° de norma es obligatorio';
-    else if (!/^\d+$/.test(form.numeroNorma.trim())) e.numeroNorma     = 'Debe ser numérico (ej: 002, 31, 4702)';
+    if (!form.numeroNorma.trim())                                          e.numeroNorma = 'El N° de norma es obligatorio';
+    else if (!/^[A-Za-z0-9][A-Za-z0-9\-\/]*$/.test(form.numeroNorma.trim())) e.numeroNorma = 'Solo letras, números, guiones y barras (ej: 002, RES-123, ORD-045/2026)';
     if (!form.anio)                                  e.anio            = 'El año es obligatorio';
     else if (!/^\d{2}$/.test(form.anio))             e.anio            = 'Debe tener exactamente 2 dígitos (ej: 26)';
     return e;
@@ -393,11 +393,11 @@ export function NormativaForm({
           <div className="grid grid-cols-2 gap-4">
             {campo('N° de norma', true, errors.numeroNorma,
               <input
-                type="text" inputMode="numeric" pattern="[0-9]*"
+                type="text"
                 className={inputCls(errors.numeroNorma)}
-                placeholder="Ej: 002"
+                placeholder="Ej: 002, RES-123, ORD-045/2026"
                 value={form.numeroNorma}
-                onChange={e => handleChange('numeroNorma', e.target.value.replace(/\D/g, ''))}
+                onChange={e => handleChange('numeroNorma', e.target.value)}
                 disabled={disabled} data-no-uppercase="true"
               />
             )}

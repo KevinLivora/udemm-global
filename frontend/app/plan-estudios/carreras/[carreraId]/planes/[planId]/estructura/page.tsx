@@ -28,7 +28,7 @@ const BLOQUES_CONOCIMIENTO = [
   { codigo: 'EL', label: 'EL - Electivas' },
 ];
 
-const TIPOS_ASIGNATURA   = ['OBLIGATORIA', 'ELECTIVA', 'OPTATIVA'];
+const TIPOS_ASIGNATURA   = ['OBLIGATORIA', 'ELECTIVA'];
 const ESTADOS_ASIGNATURA = ['ACTIVO', 'INACTIVO'];
 const MODALIDADES_DICTADO = [
   { value: 'PRESENCIAL', label: 'Presencial' },

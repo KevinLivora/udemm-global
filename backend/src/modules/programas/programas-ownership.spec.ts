@@ -4,12 +4,11 @@ import { ProgramasService } from './programas.service';
 /**
  * FASE 3 — Control de acceso a Programas de Asignatura.
  *
- * Los únicos roles con permiso de edición son:
- *   DIRECTOR_CARRERA, DECANO, SECRETARIA_ACADEMICA, RECTORADO
+ * Roles con permiso de edición:
+ *   ADMINISTRADOR_SISTEMA, DIRECTOR_CARRERA, DECANO, SECRETARIA_ACADEMICA, RECTORADO (scope global/institucional)
+ *   DOCENTE (solo con vinculación APROBADA a la asignatura — validado en el servicio)
  *
- * DOCENTE es solo lectura: bloqueado por RolesGuard a nivel de controlador.
- * En el servicio NO existe un branch específico para DOCENTE.
- * ADMINISTRADOR_SISTEMA y ADMINISTRATIVO también son solo lectura.
+ * ADMINISTRATIVO es solo lectura (bloqueado por RolesGuard).
  */
 
 const MATERIA_A_ID = 'materia-a-id';
@@ -50,6 +49,11 @@ const makePrisma = () => {
     },
     historialPrograma: {
       create: jest.fn().mockResolvedValue({}),
+    },
+    solicitudAprobacionPrograma: {
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
+      findFirst:  jest.fn().mockResolvedValue(null),
+      create:     jest.fn().mockResolvedValue({ id: 'sol-id' }),
     },
   };
   prisma.$transaction = jest.fn().mockImplementation((cb: any) => cb(prisma));
@@ -95,15 +99,61 @@ describe('ProgramasService — control de acceso (FASE 3)', () => {
     });
   });
 
-  describe('DOCENTE — RBAC: bloqueado por RolesGuard, sin branch en el servicio', () => {
-    it('no activa lookup de docente ni vinculación (el acceso está controlado por RolesGuard)', async () => {
-      // DOCENTE no está en ROLES_EDITAR del controlador — nunca llega al servicio.
-      // Si por algún motivo llegara, el servicio no tiene branch DOCENTE y no consulta
-      // docente.findUnique ni vinculacionCatedra.findFirst.
+  describe('DOCENTE — autorización por vinculación APROBADA (validado en servicio)', () => {
+    const DOCENTE_ID = 'docente-id';
+
+    it('puede editar cuando tiene vinculación APROBADA a la asignatura', async () => {
       const prisma = makePrisma();
+      prisma.docente.findUnique.mockResolvedValue({ id: DOCENTE_ID });
+      prisma.vinculacionCatedra.findFirst.mockResolvedValue({ id: 'vinc-aprobada-id' });
+
       await makeService(prisma).actualizarPrograma(MATERIA_A_ID, {}, USUARIO_ID, 'DOCENTE');
-      expect(prisma.docente.findUnique).not.toHaveBeenCalled();
+
+      expect(prisma.docente.findUnique).toHaveBeenCalledWith({
+        where: { usuarioId: USUARIO_ID },
+        select: { id: true },
+      });
+      expect(prisma.vinculacionCatedra.findFirst).toHaveBeenCalledWith({
+        where: { docenteId: DOCENTE_ID, materiaId: MATERIA_A_ID, estado: 'APROBADA' },
+        select: { id: true },
+      });
+      expect(prisma.programaAsignatura.upsert).toHaveBeenCalled();
+    });
+
+    it('lanza 403 cuando no existe perfil docente asociado al usuario', async () => {
+      const prisma = makePrisma();
+      // docente.findUnique retorna null (valor por defecto del mock)
+      await expect(makeService(prisma).actualizarPrograma(MATERIA_A_ID, {}, USUARIO_ID, 'DOCENTE'))
+        .rejects.toThrow(ForbiddenException);
       expect(prisma.vinculacionCatedra.findFirst).not.toHaveBeenCalled();
+      expect(prisma.programaAsignatura.upsert).not.toHaveBeenCalled();
+    });
+
+    it('lanza 403 cuando no tiene vinculación APROBADA con la asignatura', async () => {
+      const prisma = makePrisma();
+      prisma.docente.findUnique.mockResolvedValue({ id: DOCENTE_ID });
+      // vinculacionCatedra.findFirst retorna null (valor por defecto del mock)
+
+      await expect(makeService(prisma).actualizarPrograma(MATERIA_A_ID, {}, USUARIO_ID, 'DOCENTE'))
+        .rejects.toThrow(ForbiddenException);
+      expect(prisma.programaAsignatura.upsert).not.toHaveBeenCalled();
+    });
+
+    it('lanza 403 al intentar editar una asignatura distinta a su vinculación', async () => {
+      const OTRA_MATERIA = 'materia-b-id';
+      const prisma = makePrisma();
+      prisma.materia.findUnique.mockResolvedValue({
+        ...MATERIA_A, id: OTRA_MATERIA, planEstudio: { carreraId: CARRERA_ID },
+      });
+      prisma.docente.findUnique.mockResolvedValue({ id: DOCENTE_ID });
+      // vinculacionCatedra.findFirst para OTRA_MATERIA retorna null
+
+      await expect(makeService(prisma).actualizarPrograma(OTRA_MATERIA, {}, USUARIO_ID, 'DOCENTE'))
+        .rejects.toThrow(ForbiddenException);
+      expect(prisma.vinculacionCatedra.findFirst).toHaveBeenCalledWith({
+        where: { docenteId: DOCENTE_ID, materiaId: OTRA_MATERIA, estado: 'APROBADA' },
+        select: { id: true },
+      });
     });
   });
 

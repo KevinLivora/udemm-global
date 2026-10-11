@@ -199,6 +199,13 @@ export function Sidebar() {
       ];
     }
 
+    const ITEM_BANDEJA_APROBACIONES: MenuItemType = {
+      label: 'Bandeja de Aprobaciones',
+      icon: <IcInbox />,
+      href: '/bandeja-aprobaciones',
+      badge: contadorNovedades > 0 ? contadorNovedades : undefined,
+    };
+
     if (usuario.rol?.nombre === 'SECRETARIA_ACADEMICA') {
       return [
         { label: 'Inicio', icon: <IcHome />, href: '/' },
@@ -211,6 +218,7 @@ export function Sidebar() {
         ITEM_REPOSITORIO,
         SUBMENU_GESTION_ACADEMICA,
         ITEM_VINCULACION,
+        ITEM_BANDEJA_APROBACIONES,
         {
           label: 'Configuración',
           icon: <IcSettings />,
@@ -231,6 +239,7 @@ export function Sidebar() {
         ITEM_REPOSITORIO,
         SUBMENU_GESTION_ACADEMICA,
         ITEM_VINCULACION,
+        ITEM_BANDEJA_APROBACIONES,
         {
           label: 'Configuración',
           icon: <IcSettings />,
@@ -251,6 +260,7 @@ export function Sidebar() {
         ITEM_REPOSITORIO,
         SUBMENU_GESTION_ACADEMICA,
         ITEM_VINCULACION,
+        ITEM_BANDEJA_APROBACIONES,
       ];
     }
 
