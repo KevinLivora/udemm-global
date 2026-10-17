@@ -15,18 +15,19 @@ model Universidad {
 }
 
 model Facultad {
-  id                 String               @id @default(uuid())
-  nombre             String
-  universidadId      String
-  codigo             String?              @unique
-  descripcion        String?
-  estado             String               @default("ACTIVO")
-  fechaCreacion      DateTime             @default(now())
-  fechaActualizacion DateTime             @updatedAt
-  carreras           Carrera[]
-  universidad        Universidad          @relation(fields: [universidadId], references: [id])
-  vinculaciones      VinculacionCatedra[]
-  usuariosAsociados  UsuarioFacultad[]
+  id                   String                           @id @default(uuid())
+  nombre               String
+  universidadId        String
+  codigo               String?                          @unique
+  descripcion          String?
+  estado               String                           @default("ACTIVO")
+  fechaCreacion        DateTime                         @default(now())
+  fechaActualizacion   DateTime                         @updatedAt
+  carreras             Carrera[]
+  universidad          Universidad                      @relation(fields: [universidadId], references: [id])
+  vinculaciones        VinculacionCatedra[]
+  usuariosAsociados    UsuarioFacultad[]
+  autoevaluacionConfig AutoevaluacionConfigFacultad?
 }
 
 model Carrera {
@@ -61,6 +62,12 @@ model PlanEstudio {
   totalCreditos         Int?
   version               String?
   anio                  Int?
+  // MOD-AUT G-04: umbrales horarios por bloque (P-10..P-14). NULL = sin umbral configurado → R-09 no evalúa ese bloque.
+  horasMinTotales       Int?
+  horasMinCB            Int?
+  horasMinTB            Int?
+  horasMinTA            Int?
+  horasMinCTX           Int?
   materias              Materia[]
   carrera               Carrera              @relation(fields: [carreraId], references: [id])
   vinculaciones         VinculacionCatedra[]
@@ -465,6 +472,10 @@ model VinculacionCatedra {
   fechaDesvinculacion         DateTime?
   motivoDesvinculacion        String?
   fechaRegistroDesvinculacion DateTime?
+  // MOD-AUT G-13: responsable de cátedra. NULL = sin clasificar; true = responsable confirmado; false = no responsable.
+  // La unicidad de (materiaId, catedraId) con esResponsableCatedra=true se garantiza
+  // mediante un índice parcial en la migración SQL (no expresable en Prisma con @unique condicional).
+  esResponsableCatedra        Boolean?
   aprobador                   Usuario?    @relation("VinculacionAprobador", fields: [aprobadorId], references: [id])
   cargo                       Cargo       @relation(fields: [cargoId], references: [id])
   carrera                     Carrera     @relation(fields: [carreraId], references: [id])
@@ -477,6 +488,9 @@ model VinculacionCatedra {
   modalidad                   Modalidad   @relation(fields: [modalidadId], references: [id])
   planEstudio                 PlanEstudio @relation(fields: [planEstudioId], references: [id])
   usuarioSolicitante          Usuario     @relation("VinculacionSolicitante", fields: [usuarioSolicitanteId], references: [id])
+
+  @@index([planEstudioId, esResponsableCatedra])
+  @@index([materiaId, catedraId])
 }
 
 model TipoPosgrado {
@@ -657,4 +671,24 @@ model MensajeCorrecionPrograma {
 
   @@index([solicitudId])
   @@index([programaId])
+}
+
+// ── MOD-AUT G-14: Configuración de autoevaluación por Facultad ───────────────
+// P-01: tope semanal docente (R-03). P-02: baja dedicación (R-10). P-03: sobreasignación (R-07).
+// Se crea explícitamente para cada Facultad — no hay registro automático con defaults.
+// El sistema distingue Facultad sin config (config = null) de config existente.
+
+// M-01: p01/p02/p03 sin @default — valores institucionales pendientes de aprobación formal.
+// La API exige los tres al crear una configuración nueva; las actualizaciones son parciales.
+model AutoevaluacionConfigFacultad {
+  id         String   @id @default(uuid())
+  facultadId String   @unique
+  p01TopeH   Int
+  p02BajaH   Int
+  p03MaxMat  Int
+  updatedAt  DateTime @updatedAt
+  updatedBy  String?
+  facultad   Facultad @relation(fields: [facultadId], references: [id])
+
+  @@map("autoevaluacion_config_facultad")
 }
