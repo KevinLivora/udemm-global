@@ -1,0 +1,189 @@
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../../../prisma/prisma.service';
+import { ScopeService } from '../../scopes/scope.service';
+import { EstadoCalculo } from '../types/estado-calculo.types';
+import type { ResultadoIP03, ResultadoIP08, TablroCarreraResponseDto } from './tablero-carrera.dto';
+
+// ── Autorización ──────────────────────────────────────────────────────────────
+
+const ROLES_MODAUT = new Set([
+  'ADMINISTRADOR_SISTEMA',
+  'SECRETARIA_ACADEMICA',
+  'RECTORADO',
+  'DECANO',
+  'DIRECTOR_CARRERA',
+]);
+
+// ── Estado más restrictivo ────────────────────────────────────────────────────
+
+const PESO_ESTADO: Record<EstadoCalculo, number> = {
+  [EstadoCalculo.CALCULADO]: 1,
+  [EstadoCalculo.NO_APLICA]: 2,
+  [EstadoCalculo.PARCIAL]: 3,
+  [EstadoCalculo.NO_DETERMINABLE]: 4,
+};
+
+function estadoMasRestrictivo(...estados: EstadoCalculo[]): EstadoCalculo {
+  return estados.reduce((a, b) => (PESO_ESTADO[b] > PESO_ESTADO[a] ? b : a));
+}
+
+// ── Clasificación de cargos (FSD §7, IP-08) ───────────────────────────────────
+
+/**
+ * Categorías CONEAU reconocidas por el FSD para el cálculo P/A.
+ * Los nombres se normalizan a mayúsculas antes de comparar.
+ */
+const CARGOS_PROFESOR = new Set([
+  'TITULAR',
+  'PROFESOR TITULAR',
+  'ASOCIADO',
+  'PROFESOR ASOCIADO',
+  'ADJUNTO',
+  'PROFESOR ADJUNTO',
+]);
+
+const CARGOS_AUXILIAR = new Set([
+  'JTP',
+  'JEFE DE TRABAJOS PRÁCTICOS',
+  'JEFE DE TRABAJOS PRACTICOS',
+  'AYUDANTE GRADUADO',
+  'AYUDANTE NO GRADUADO',
+]);
+
+function categorizarCargo(nombre: string): 'P' | 'A' | null {
+  const n = nombre.trim().toUpperCase();
+  if (CARGOS_PROFESOR.has(n)) return 'P';
+  if (CARGOS_AUXILIAR.has(n)) return 'A';
+  return null;
+}
+
+// ── Servicio ──────────────────────────────────────────────────────────────────
+
+/**
+ * Calcula IP-03 (Materias cubiertas) e IP-08 (Relación profesores/auxiliares)
+ * para el plantel de una carrera según FSD §7.
+ *
+ * Autorización: rol verificado localmente + scope territorial delegado a ScopeService.
+ * Defensa en profundidad: la verificación de scope está tanto en el controlador
+ * (vía RolesGuard) como en este servicio.
+ */
+@Injectable()
+export class TablroCarreraService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly scope: ScopeService,
+  ) {}
+
+  async consultarCarrera(
+    carreraId: string,
+    usuarioId: string,
+    rolNombre: string,
+  ): Promise<TablroCarreraResponseDto> {
+    if (!ROLES_MODAUT.has(rolNombre)) {
+      throw new ForbiddenException('Rol sin acceso a MOD-AUT');
+    }
+
+    const carrera = await this.prisma.carrera.findUnique({
+      where: { id: carreraId },
+      select: { id: true },
+    });
+    if (!carrera) throw new NotFoundException(`Carrera ${carreraId} no encontrada`);
+
+    const tieneScope = await this.scope.tieneScopeCarrera(usuarioId, rolNombre, carreraId);
+    if (!tieneScope) throw new ForbiddenException();
+
+    const fechaEvaluacion = new Date();
+    const [ip03, ip08] = await Promise.all([
+      this.calcularIP03(carreraId),
+      this.calcularIP08(carreraId),
+    ]);
+
+    return {
+      carreraId,
+      fechaEvaluacion: fechaEvaluacion.toISOString(),
+      ip03,
+      ip08,
+      estadoGeneralCalculo: estadoMasRestrictivo(ip03.estadoCalculo, ip08.estadoCalculo),
+    };
+  }
+
+  /**
+   * IP-03: Materias cubiertas.
+   *
+   * Total = todas las materias en planes de la carrera (sin filtro de estado de materia,
+   * consistente con R-08 que evalúa todas las materias del plan).
+   * Cubiertas = distintos materiaId con ≥1 VinculacionCatedra estado='APROBADA'.
+   */
+  private async calcularIP03(carreraId: string): Promise<ResultadoIP03> {
+    const planes = await this.prisma.planEstudio.findMany({
+      where: { carreraId },
+      select: { id: true },
+    });
+
+    if (planes.length === 0) {
+      return { cubiertas: 0, total: 0, estadoCalculo: EstadoCalculo.NO_APLICA };
+    }
+
+    const planIds = planes.map((p) => p.id);
+
+    const [totalMaterias, materiasCubiertas] = await Promise.all([
+      this.prisma.materia.count({ where: { planEstudioId: { in: planIds } } }),
+      this.prisma.vinculacionCatedra.findMany({
+        where: { carreraId, estado: 'APROBADA' },
+        select: { materiaId: true },
+        distinct: ['materiaId'],
+      }),
+    ]);
+
+    if (totalMaterias === 0) {
+      return { cubiertas: 0, total: 0, estadoCalculo: EstadoCalculo.NO_APLICA };
+    }
+
+    return {
+      cubiertas: materiasCubiertas.length,
+      total: totalMaterias,
+      estadoCalculo: EstadoCalculo.CALCULADO,
+    };
+  }
+
+  /**
+   * IP-08: Relación profesores / auxiliares.
+   *
+   * Unidad: par (docenteId, cargoId) distinto con estado='APROBADA' en la carrera.
+   * Clasificación: según CARGOS_PROFESOR y CARGOS_AUXILIAR (categorías CONEAU).
+   * Cargos no clasificables → «Otros», no se cuentan.
+   */
+  private async calcularIP08(carreraId: string): Promise<ResultadoIP08> {
+    const cargosVigentes = await this.prisma.vinculacionCatedra.findMany({
+      where: { carreraId, estado: 'APROBADA' },
+      select: {
+        docenteId: true,
+        cargoId: true,
+        cargo: { select: { nombre: true } },
+      },
+      distinct: ['docenteId', 'cargoId'],
+    });
+
+    if (cargosVigentes.length === 0) {
+      return { profesores: 0, auxiliares: 0, ratio: null, estadoCalculo: EstadoCalculo.NO_APLICA };
+    }
+
+    let profesores = 0;
+    let auxiliares = 0;
+    for (const c of cargosVigentes) {
+      const cat = categorizarCargo(c.cargo.nombre);
+      if (cat === 'P') profesores++;
+      else if (cat === 'A') auxiliares++;
+    }
+
+    const ratio =
+      auxiliares === 0 ? null : Math.round((profesores / auxiliares) * 10) / 10;
+
+    return {
+      profesores,
+      auxiliares,
+      ratio,
+      estadoCalculo: EstadoCalculo.CALCULADO,
+    };
+  }
+}

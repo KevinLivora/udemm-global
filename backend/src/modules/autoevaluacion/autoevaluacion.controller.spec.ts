@@ -18,6 +18,7 @@ import { IndicadoresService } from './indicadores/indicadores.service';
 import { RegistroIndicadores } from './indicadores/indicadores.registry';
 import type { DefinicionIndicador } from './indicadores/indicadores.registry';
 import { TablroPlanService } from './tablero/tablero-plan.service';
+import { TablroCarreraService } from './tablero/tablero-carrera.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
 import { EstadoCalculo } from './types/estado-calculo.types';
@@ -125,6 +126,7 @@ async function crearApp(overrides: {
       { provide: IndicadoresService,    useValue: { evaluar } },
       { provide: RegistroIndicadores,   useValue: { listar } },
       { provide: TablroPlanService,     useValue: { consultarPlan: jest.fn() } },
+      { provide: TablroCarreraService,  useValue: { consultarCarrera: jest.fn() } },
     ],
   })
     .overrideGuard(JwtAuthGuard).useClass(MockJwtGuard)

@@ -23,6 +23,7 @@ import type { ResultadoIndicador } from '../indicadores/indicadores.types';
 import type { ResultadoR08 } from '../indicadores/r08.evaluador';
 import type { ResultadoR09 } from '../indicadores/r09.evaluador';
 import { TablroPlanService } from './tablero-plan.service';
+import { TablroCarreraService } from './tablero-carrera.service';
 
 // ── Constantes ───────────────────────────────────────────────────────────────
 
@@ -143,6 +144,7 @@ async function crearApp(consultarPlan: jest.Mock): Promise<INestApplication> {
       { provide: IndicadoresService,    useValue: { evaluar: jest.fn() } },
       { provide: RegistroIndicadores,   useValue: { listar: jest.fn().mockReturnValue([]) } },
       { provide: TablroPlanService,     useValue: { consultarPlan } },
+      { provide: TablroCarreraService,  useValue: { consultarCarrera: jest.fn() } },
     ],
   })
     .overrideGuard(JwtAuthGuard).useClass(MockJwtGuard)

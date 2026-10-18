@@ -393,6 +393,14 @@ export default function AutoevaluacionPage() {
                 {planLabel}
               </span>
             )}
+            {carreraId && (
+              <Link
+                href={`/autoevaluacion/tablero/carrera/${carreraId}?carrera=${encodeURIComponent(carreraLabel ?? '')}`}
+                className="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#0f4c81]/10 text-[#0f4c81] border border-[#0f4c81]/20 hover:bg-[#0f4c81]/15 transition-colors"
+              >
+                Ver tablero de carrera →
+              </Link>
+            )}
             {planId && (
               <Link
                 href={`/autoevaluacion/tablero/${planId}?plan=${encodeURIComponent(planLabel ?? '')}&carrera=${encodeURIComponent(carreraLabel ?? '')}`}

@@ -15,6 +15,7 @@ import { R09EvaluadorService } from './indicadores/r09.evaluador';
 import { R12EvaluadorService } from './indicadores/r12.evaluador';
 import { ResponsablesService } from './responsables/responsables.service';
 import { TablroPlanService } from './tablero/tablero-plan.service';
+import { TablroCarreraService } from './tablero/tablero-carrera.service';
 
 @Module({
   imports: [PrismaModule, ScopeModule],
@@ -33,6 +34,7 @@ import { TablroPlanService } from './tablero/tablero-plan.service';
     R12EvaluadorService,
     IndicadoresService,
     TablroPlanService,
+    TablroCarreraService,
   ],
   exports: [
     ConfigFacultadService,
@@ -48,6 +50,7 @@ import { TablroPlanService } from './tablero/tablero-plan.service';
     R12EvaluadorService,
     IndicadoresService,
     TablroPlanService,
+    TablroCarreraService,
   ],
 })
 export class AutoevaluacionModule {}

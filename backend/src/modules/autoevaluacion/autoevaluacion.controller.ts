@@ -25,6 +25,7 @@ import { ActualizarConfigPlanDto } from './dto/actualizar-config-plan.dto';
 import { DesignarResponsableDto } from './dto/designar-responsable.dto';
 import { EvaluarIndicadorDto } from './dto/evaluar-indicador.dto';
 import { TablroPlanService } from './tablero/tablero-plan.service';
+import { TablroCarreraService } from './tablero/tablero-carrera.service';
 
 const ROLES_MODAUT = [
   'ADMINISTRADOR_SISTEMA',
@@ -57,6 +58,7 @@ export class AutoevaluacionController {
     private readonly indicadores: IndicadoresService,
     private readonly registro: RegistroIndicadores,
     private readonly tablero: TablroPlanService,
+    private readonly tableroCarrera: TablroCarreraService,
   ) {}
 
   // ── Configuración por Facultad ──────────────────────────────────────────────
@@ -173,6 +175,29 @@ export class AutoevaluacionController {
     @Req() req: any,
   ) {
     return this.tablero.consultarPlan(planEstudioId, req.user.id, req.user.rol.nombre);
+  }
+
+  // ── Tablero por carrera ─────────────────────────────────────────────────────
+
+  /**
+   * Devuelve el tablero de indicadores IP-03 e IP-08 para la carrera indicada.
+   *
+   * IP-03: Materias cubiertas (FSD §7) — asignaturas con ≥1 vinculación APROBADA.
+   * IP-08: Relación profesores/auxiliares (FSD §7) — ratio P/A según categorías CONEAU.
+   *
+   * Seguridad:
+   * - carreraId se valida como UUID v4 en el path.
+   * - usuarioId y rolNombre provienen exclusivamente del token JWT.
+   * - TablroCarreraService verifica rol y scope antes de ejecutar los cálculos.
+   */
+  @Post('tablero/carrera/:carreraId')
+  @HttpCode(200)
+  @Roles(...ROLES_MODAUT)
+  async tablroCarrera(
+    @Param('carreraId', new ParseUUIDPipe({ version: '4' })) carreraId: string,
+    @Req() req: any,
+  ) {
+    return this.tableroCarrera.consultarCarrera(carreraId, req.user.id, req.user.rol.nombre);
   }
 
   // ── Indicadores ─────────────────────────────────────────────────────────────
