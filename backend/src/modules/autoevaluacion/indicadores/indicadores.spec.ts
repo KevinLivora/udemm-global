@@ -7,6 +7,7 @@ import { R06EvaluadorService } from './r06.evaluador';
 import { R07EvaluadorService } from './r07.evaluador';
 import { R08EvaluadorService } from './r08.evaluador';
 import { R09EvaluadorService } from './r09.evaluador';
+import { R12EvaluadorService } from './r12.evaluador';
 import type {
   AlcanceIndicador,
   ContextoEvaluacion,
@@ -105,6 +106,14 @@ function makeR07Stub(): R07EvaluadorService {
   );
 }
 
+function makeR12Stub(): R12EvaluadorService {
+  return new R12EvaluadorService(
+    {
+      obtenerDocentesParaR12: jest.fn().mockResolvedValue({ docentes: [], facultadId: 'fac-test', alcanceFacultad: true, docentesMultiFacultad: new Set() }),
+    } as any,
+  );
+}
+
 function makeSvc(
   scope: any,
   prisma: any,
@@ -114,6 +123,7 @@ function makeSvc(
   r09?: R09EvaluadorService,
   r06?: R06EvaluadorService,
   r07?: R07EvaluadorService,
+  r12?: R12EvaluadorService,
 ) {
   return new IndicadoresService(
     scope as any,
@@ -124,6 +134,7 @@ function makeSvc(
     r09 ?? makeR09Stub(),
     r06 ?? makeR06Stub(),
     r07 ?? makeR07Stub(),
+    r12 ?? makeR12Stub(),
   );
 }
 
@@ -730,7 +741,7 @@ describe('IndicadoresService — R-02 integración', () => {
   it('indicadores no implementados siguen en NO_IMPLEMENTADO tras el cableado', () => {
     const reg = new RegistroIndicadores();
     makeSvc(makeScope(), makePrisma(), reg);
-    const noImpl = reg.listar().filter(d => !['R-02', 'R-06', 'R-07', 'R-08', 'R-09'].includes(d.codigo));
+    const noImpl = reg.listar().filter(d => !['R-02', 'R-06', 'R-07', 'R-08', 'R-09', 'R-12'].includes(d.codigo));
     expect(noImpl.every(d => d.estadoImplementacion === 'NO_IMPLEMENTADO')).toBe(true);
   });
 
@@ -852,7 +863,7 @@ describe('IndicadoresService — R-09 integración', () => {
   it('indicadores distintos de R-02, R-06, R-07, R-08 y R-09 siguen en NO_IMPLEMENTADO', () => {
     const reg = new RegistroIndicadores();
     makeSvc(makeScope(), makePrisma(), reg);
-    const noImpl = reg.listar().filter(d => !['R-02', 'R-06', 'R-07', 'R-08', 'R-09'].includes(d.codigo));
+    const noImpl = reg.listar().filter(d => !['R-02', 'R-06', 'R-07', 'R-08', 'R-09', 'R-12'].includes(d.codigo));
     expect(noImpl.every(d => d.estadoImplementacion === 'NO_IMPLEMENTADO')).toBe(true);
   });
 
@@ -976,7 +987,7 @@ describe('IndicadoresService — R-06 integración', () => {
   it('indicadores distintos de R-02, R-06, R-07, R-08 y R-09 siguen en NO_IMPLEMENTADO', () => {
     const reg = new RegistroIndicadores();
     makeSvc(makeScope(), makePrisma(), reg);
-    const noImpl = reg.listar().filter(d => !['R-02', 'R-06', 'R-07', 'R-08', 'R-09'].includes(d.codigo));
+    const noImpl = reg.listar().filter(d => !['R-02', 'R-06', 'R-07', 'R-08', 'R-09', 'R-12'].includes(d.codigo));
     expect(noImpl.every(d => d.estadoImplementacion === 'NO_IMPLEMENTADO')).toBe(true);
   });
 
@@ -1077,7 +1088,7 @@ describe('IndicadoresService — R-07 integración', () => {
   it('indicadores distintos de R-02, R-06, R-07, R-08 y R-09 siguen en NO_IMPLEMENTADO', () => {
     const reg = new RegistroIndicadores();
     makeSvc(makeScope(), makePrisma(), reg);
-    const noImpl = reg.listar().filter(d => !['R-02', 'R-06', 'R-07', 'R-08', 'R-09'].includes(d.codigo));
+    const noImpl = reg.listar().filter(d => !['R-02', 'R-06', 'R-07', 'R-08', 'R-09', 'R-12'].includes(d.codigo));
     expect(noImpl.every(d => d.estadoImplementacion === 'NO_IMPLEMENTADO')).toBe(true);
   });
 

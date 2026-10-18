@@ -5,6 +5,8 @@ import type {
   BloqueNormalizado,
   CarreraAut,
   ConfigFacultadAut,
+  DocenteFichaAut,
+  DocentesParaR12,
   EstadoSeccion,
   FacultadAut,
   MateriaAut,
@@ -492,9 +494,93 @@ export class ConsultasAcademicasService {
     return { vinculaciones, facultadId, alcanceFacultad, docentesMultiFacultad };
   }
 
+  // ── Docentes para R-12 (ficha de completitud) ────────────────────────────
+
+  /**
+   * Devuelve los docentes con al menos una vinculación APROBADA en el alcance
+   * del usuario, junto con sus campos de ficha relevantes para R-12.
+   *
+   * Alcance:
+   * - Roles globales y DECANO: toda la facultad (alcanceFacultad=true).
+   * - DIRECTOR_CARRERA: solo la carrera solicitada (alcanceFacultad=false → PARCIAL).
+   *
+   * Un docente que aparece en múltiples cátedras de la facultad se devuelve una sola vez.
+   * La detección cross-facultad sigue la misma lógica que R-07.
+   */
+  async obtenerDocentesParaR12(
+    carreraId: string,
+    usuarioId: string,
+    rolNombre: string,
+  ): Promise<DocentesParaR12> {
+    this.checkRol(rolNombre);
+
+    const carrera = await this.prisma.carrera.findUnique({
+      where: { id: carreraId },
+      select: { id: true, facultadId: true },
+    });
+    if (!carrera) throw new NotFoundException(`Carrera ${carreraId} no encontrada`);
+
+    const tieneScope = await this.scope.tieneScopeCarrera(usuarioId, rolNombre, carreraId);
+    if (!tieneScope) throw new ForbiddenException();
+
+    const { facultadId } = carrera;
+
+    const ROLES_ALCANCE_FACULTAD = new Set([
+      'ADMINISTRADOR_SISTEMA',
+      'SECRETARIA_ACADEMICA',
+      'RECTORADO',
+      'DECANO',
+    ]);
+    const alcanceFacultad = ROLES_ALCANCE_FACULTAD.has(rolNombre);
+
+    const rows = await this.prisma.vinculacionCatedra.findMany({
+      where: {
+        ...(alcanceFacultad ? { facultadId } : { carreraId }),
+        estado: 'APROBADA',
+        docente: { activo: true },
+      },
+      select: {
+        docenteId: true,
+        docente: {
+          select: {
+            id: true,
+            nombre: true,
+            apellido: true,
+            activo: true,
+            tituloGrado: true,
+            areaDisciplinarId: true,
+            fechaNacimiento: true,
+            sexo: true,
+          },
+        },
+      },
+      distinct: ['docenteId'],
+    });
+
+    const docentes: DocenteFichaAut[] = rows.map((r) => ({
+      docenteId: r.docenteId,
+      nombre: r.docente.nombre,
+      apellido: r.docente.apellido,
+      activo: r.docente.activo,
+      tituloGrado: r.docente.tituloGrado ?? null,
+      areaDisciplinarId: r.docente.areaDisciplinarId ?? null,
+      fechaNacimiento: r.docente.fechaNacimiento ?? null,
+      sexo: r.docente.sexo ?? null,
+    }));
+
+    const docentesMultiFacultad = alcanceFacultad
+      ? await this.detectarDocentesMultiFacultad(
+          docentes.map((d) => d.docenteId),
+          facultadId,
+        )
+      : new Set<string>();
+
+    return { docentes, facultadId, alcanceFacultad, docentesMultiFacultad };
+  }
+
   /**
    * Detecta docentes del scope con vinculaciones APROBADAS en otras facultades.
-   * Método privado: solo accesible desde obtenerVinculacionesParaR07.
+   * Método privado: accesible desde obtenerVinculacionesParaR07 y obtenerDocentesParaR12.
    * No expone qué otras facultades están involucradas; solo indica pertenencia al conjunto.
    */
   private async detectarDocentesMultiFacultad(

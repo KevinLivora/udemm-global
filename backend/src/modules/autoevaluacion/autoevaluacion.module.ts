@@ -12,6 +12,7 @@ import { R06EvaluadorService } from './indicadores/r06.evaluador';
 import { R07EvaluadorService } from './indicadores/r07.evaluador';
 import { R08EvaluadorService } from './indicadores/r08.evaluador';
 import { R09EvaluadorService } from './indicadores/r09.evaluador';
+import { R12EvaluadorService } from './indicadores/r12.evaluador';
 import { ResponsablesService } from './responsables/responsables.service';
 import { TablroPlanService } from './tablero/tablero-plan.service';
 
@@ -29,6 +30,7 @@ import { TablroPlanService } from './tablero/tablero-plan.service';
     R07EvaluadorService,
     R08EvaluadorService,
     R09EvaluadorService,
+    R12EvaluadorService,
     IndicadoresService,
     TablroPlanService,
   ],
@@ -43,6 +45,7 @@ import { TablroPlanService } from './tablero/tablero-plan.service';
     R07EvaluadorService,
     R08EvaluadorService,
     R09EvaluadorService,
+    R12EvaluadorService,
     IndicadoresService,
     TablroPlanService,
   ],

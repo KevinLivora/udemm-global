@@ -178,6 +178,43 @@ export interface VinculacionesParaR07 {
   docentesMultiFacultad: Set<string>;
 }
 
+// ── R-12: ficha de docente ────────────────────────────────────────────────────
+
+/**
+ * Datos de ficha docente requeridos por el evaluador R-12.
+ * Solo incluye los campos relevantes para la evaluación de completitud;
+ * no incluye dedicacion ni categoriaDocente (no evaluados por R-12).
+ */
+export interface DocenteFichaAut {
+  docenteId: string;
+  nombre: string;
+  apellido: string;
+  activo: boolean;
+  /** Título de grado; null = no informado (ítem formacionGrado incompleto). */
+  tituloGrado: string | null;
+  /** FK a AreaDisciplinar; null = área no asignada (ítem areaDesempeno incompleto). */
+  areaDisciplinarId: string | null;
+  /** null = ítem personales potencialmente incompleto (R12-DP-01). */
+  fechaNacimiento: Date | null;
+  /** null o vacío = ítem personales potencialmente incompleto (R12-DP-01). */
+  sexo: string | null;
+}
+
+/**
+ * Resultado de la consulta de docentes para el evaluador R-12.
+ * Paralela a VinculacionesParaR07 pero centrada en ficha, no en vinculaciones.
+ *
+ * alcanceFacultad = true:  docentes de TODAS las carreras de la facultad con APROBADA.
+ * alcanceFacultad = false: docentes de la carrera solicitada únicamente (DIRECTOR_CARRERA → PARCIAL).
+ * docentesMultiFacultad: subconjunto de docenteIds con vinculaciones APROBADAS en otras facultades.
+ */
+export interface DocentesParaR12 {
+  docentes: DocenteFichaAut[];
+  facultadId: string;
+  alcanceFacultad: boolean;
+  docentesMultiFacultad: Set<string>;
+}
+
 /**
  * LIMITACIONES R-03 — Recuperación de datos docentes (pendientes de resolución futura)
  *

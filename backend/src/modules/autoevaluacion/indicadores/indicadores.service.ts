@@ -6,6 +6,7 @@ import { R06EvaluadorService } from './r06.evaluador';
 import { R07EvaluadorService } from './r07.evaluador';
 import { R08EvaluadorService } from './r08.evaluador';
 import { R09EvaluadorService } from './r09.evaluador';
+import { R12EvaluadorService } from './r12.evaluador';
 import { RegistroIndicadores } from './indicadores.registry';
 import type { AlcanceIndicador, ContextoEvaluacion, ResultadoIndicador } from './indicadores.types';
 import { resultadoNoImplementado } from './indicadores.types';
@@ -59,12 +60,14 @@ export class IndicadoresService {
     private readonly r09: R09EvaluadorService,
     private readonly r06: R06EvaluadorService,
     private readonly r07: R07EvaluadorService,
+    private readonly r12: R12EvaluadorService,
   ) {
     this.registro.asignarEvaluador('R-02', r02);
     this.registro.asignarEvaluador('R-06', r06);
     this.registro.asignarEvaluador('R-07', r07);
     this.registro.asignarEvaluador('R-08', r08);
     this.registro.asignarEvaluador('R-09', r09);
+    this.registro.asignarEvaluador('R-12', r12);
   }
 
   async evaluar(solicitud: SolicitudEvaluacion): Promise<ResultadoIndicador<unknown>> {
