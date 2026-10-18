@@ -2,7 +2,7 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ScopeService } from '../../scopes/scope.service';
 import { EstadoCalculo } from '../types/estado-calculo.types';
-import type { ResultadoIP03, ResultadoIP08, TablroCarreraResponseDto } from './tablero-carrera.dto';
+import type { ResultadoIP01, ResultadoIP02, ResultadoIP03, ResultadoIP08, TablroCarreraResponseDto } from './tablero-carrera.dto';
 
 // ── Autorización ──────────────────────────────────────────────────────────────
 
@@ -60,7 +60,8 @@ function categorizarCargo(nombre: string): 'P' | 'A' | null {
 // ── Servicio ──────────────────────────────────────────────────────────────────
 
 /**
- * Calcula IP-03 (Materias cubiertas) e IP-08 (Relación profesores/auxiliares)
+ * Calcula IP-01 (Docentes vigentes), IP-02 (Cargos docentes vigentes),
+ * IP-03 (Materias cubiertas) e IP-08 (Relación profesores/auxiliares)
  * para el plantel de una carrera según FSD §7.
  *
  * Autorización: rol verificado localmente + scope territorial delegado a ScopeService.
@@ -93,7 +94,9 @@ export class TablroCarreraService {
     if (!tieneScope) throw new ForbiddenException();
 
     const fechaEvaluacion = new Date();
-    const [ip03, ip08] = await Promise.all([
+    const [ip01, ip02, ip03, ip08] = await Promise.all([
+      this.calcularIP01(carreraId),
+      this.calcularIP02(carreraId),
       this.calcularIP03(carreraId),
       this.calcularIP08(carreraId),
     ]);
@@ -101,10 +104,58 @@ export class TablroCarreraService {
     return {
       carreraId,
       fechaEvaluacion: fechaEvaluacion.toISOString(),
+      ip01,
+      ip02,
       ip03,
       ip08,
-      estadoGeneralCalculo: estadoMasRestrictivo(ip03.estadoCalculo, ip08.estadoCalculo),
+      estadoGeneralCalculo: estadoMasRestrictivo(
+        ip01.estadoCalculo, ip02.estadoCalculo,
+        ip03.estadoCalculo, ip08.estadoCalculo,
+      ),
     };
+  }
+
+  /**
+   * IP-01: Docentes vigentes.
+   * COUNT DISTINCT docenteId con estado='APROBADA' y docente.activo=true.
+   */
+  private async calcularIP01(carreraId: string): Promise<ResultadoIP01> {
+    const docentes = await this.prisma.vinculacionCatedra.findMany({
+      where: { carreraId, estado: 'APROBADA', docente: { activo: true } },
+      select: { docenteId: true },
+      distinct: ['docenteId'],
+    });
+
+    if (docentes.length === 0) {
+      return { total: 0, estadoCalculo: EstadoCalculo.NO_APLICA };
+    }
+
+    return { total: docentes.length, estadoCalculo: EstadoCalculo.CALCULADO };
+  }
+
+  /**
+   * IP-02: Cargos docentes vigentes.
+   * COUNT DISTINCT (docenteId, cargoId) con estado='APROBADA', docente.activo=true.
+   * Excluye cargos de gestión («Otros»): solo categorías P y A según CONEAU (FSD §7).
+   */
+  private async calcularIP02(carreraId: string): Promise<ResultadoIP02> {
+    const cargos = await this.prisma.vinculacionCatedra.findMany({
+      where: { carreraId, estado: 'APROBADA', docente: { activo: true } },
+      select: {
+        docenteId: true,
+        cargoId: true,
+        cargo: { select: { nombre: true } },
+      },
+      distinct: ['docenteId', 'cargoId'],
+    });
+
+    const total = cargos.filter((c) => categorizarCargo(c.cargo.nombre) !== null).length;
+
+    if (total === 0) {
+      return { total: 0, estadoCalculo: EstadoCalculo.NO_APLICA };
+    }
+
+    return { total, estadoCalculo: EstadoCalculo.CALCULADO };
   }
 
   /**

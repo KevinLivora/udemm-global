@@ -101,6 +101,8 @@ function TablroCarreraInner() {
 
   useEffect(() => { cargar(); }, [carreraId]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const ip01 = dato?.ip01;
+  const ip02 = dato?.ip02;
   const ip03 = dato?.ip03;
   const ip08 = dato?.ip08;
 
@@ -153,7 +155,7 @@ function TablroCarreraInner() {
           <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Estado general de cálculo:</span>
           <EstadoBadge ec={dato.estadoGeneralCalculo} />
           <span className="text-[10px] text-slate-400 italic">
-            Estado más restrictivo entre los dos indicadores — no indica cumplimiento académico.
+            Estado más restrictivo entre los cuatro indicadores — no indica cumplimiento académico.
           </span>
         </div>
       )}
@@ -174,8 +176,69 @@ function TablroCarreraInner() {
       )}
 
       {/* Indicadores */}
-      {dato && ip03 && ip08 && (
+      {dato && ip01 && ip02 && ip03 && ip08 && (
         <div className="space-y-4">
+
+          {/* IP-01 + IP-02 — Plantel vigente (fila compacta) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            {/* IP-01 — Docentes vigentes */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <EtiquetaIndicador codigo="IP-01" titulo="Docentes vigentes" />
+
+              {ip01.estadoCalculo === 'NO_APLICA' ? (
+                <div className="p-3 rounded-lg bg-sky-50 border border-sky-200">
+                  <p className="text-xs text-sky-700">
+                    Sin docentes activos con asignaciones aprobadas. No aplica la evaluación.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-center py-3">
+                    <div className="text-center">
+                      <p className="text-3xl font-bold tabular-nums text-[#0f4c81]">{ip01.total}</p>
+                      <p className="text-[10px] text-slate-500 mt-1">docentes activos con asignación vigente</p>
+                    </div>
+                  </div>
+                  <div className="flex justify-end mt-1">
+                    <EstadoBadge ec={ip01.estadoCalculo} />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* IP-02 — Cargos docentes vigentes */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+              <EtiquetaIndicador codigo="IP-02" titulo="Cargos docentes vigentes" />
+
+              {ip02.estadoCalculo === 'NO_APLICA' ? (
+                <div className="p-3 rounded-lg bg-sky-50 border border-sky-200">
+                  <p className="text-xs text-sky-700">
+                    Sin cargos docentes clasificables activos. No aplica la evaluación.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-center py-3">
+                    <div className="text-center">
+                      <p className="text-3xl font-bold tabular-nums text-[#0f4c81]">{ip02.total}</p>
+                      <p className="text-[10px] text-slate-500 mt-1">cargos P+A con docente activo</p>
+                    </div>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-slate-100">
+                    <p className="text-[10px] text-slate-400 leading-relaxed">
+                      P = Titular, Asociado, Adjunto · A = JTP, Ayudante Graduado, No Graduado.
+                      No incluye cargos de gestión.
+                    </p>
+                  </div>
+                  <div className="flex justify-end mt-1">
+                    <EstadoBadge ec={ip02.estadoCalculo} />
+                  </div>
+                </>
+              )}
+            </div>
+
+          </div>
 
           {/* IP-03 — Materias cubiertas */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
@@ -288,7 +351,9 @@ function TablroCarreraInner() {
 
           {/* Nota metodológica */}
           <p className="text-[10px] text-slate-400 text-center">
-            Indicadores FSD §7 — Plantel de la carrera. Basados en vinculaciones con estado APROBADA.
+            Indicadores FSD §7 — Plantel de la carrera.
+            IP-01 e IP-02 incluyen solo docentes activos (docente.activo=true).
+            IP-03 e IP-08 basados en vinculaciones con estado APROBADA.
           </p>
 
         </div>

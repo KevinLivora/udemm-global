@@ -1,6 +1,27 @@
 import type { EstadoCalculo } from '../types/estado-calculo.types';
 
 /**
+ * FSD §7, IP-01 — Cantidad de docentes vigentes.
+ * Distintos docenteId con ≥1 VinculacionCatedra estado='APROBADA' y docente.activo=true.
+ */
+export interface ResultadoIP01 {
+  /** Docentes activos con al menos una asignación APROBADA en la carrera. */
+  total: number;
+  estadoCalculo: EstadoCalculo;
+}
+
+/**
+ * FSD §7, IP-02 — Cantidad de cargos docentes vigentes.
+ * Pares (docenteId, cargoId) distintos, estado='APROBADA', docente.activo=true.
+ * No incluye cargos de gestión («Otros»); solo categorías P y A (FSD exclusión explícita).
+ */
+export interface ResultadoIP02 {
+  /** Cargos docentes (P+A) con docente activo y asignación APROBADA. */
+  total: number;
+  estadoCalculo: EstadoCalculo;
+}
+
+/**
  * FSD §7, IP-03 — Materias cubiertas por el plantel de la carrera.
  *
  * «N de M asignaturas con al menos una asignación válida (estado APROBADA)
@@ -35,12 +56,14 @@ export interface ResultadoIP08 {
 /**
  * Respuesta del endpoint POST /autoevaluacion/tablero/carrera/:carreraId.
  *
- * estadoGeneralCalculo refleja el estado más restrictivo de IP-03 e IP-08.
+ * estadoGeneralCalculo refleja el estado más restrictivo entre IP-01, IP-02, IP-03 e IP-08.
  */
 export interface TablroCarreraResponseDto {
   carreraId: string;
   /** ISO 8601 */
   fechaEvaluacion: string;
+  ip01: ResultadoIP01;
+  ip02: ResultadoIP02;
   ip03: ResultadoIP03;
   ip08: ResultadoIP08;
   estadoGeneralCalculo: EstadoCalculo;

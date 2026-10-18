@@ -6,6 +6,7 @@ import { EstadoCalculo } from '../types/estado-calculo.types';
 
 const CAR_ID = 'car-00000000-0000-0000-0000-000000000001';
 
+type DocenteId = { docenteId: string };
 type CargoPair = { docenteId: string; cargoId: string; cargo: { nombre: string } };
 
 function makePrisma(overrides: {
@@ -13,6 +14,8 @@ function makePrisma(overrides: {
   planes?: { id: string }[];
   totalMaterias?: number;
   materiasCubiertasIds?: { materiaId: string }[];
+  docentesVigentesIds?: DocenteId[];
+  cargosActivosConCategoria?: CargoPair[];
   cargosVigentes?: CargoPair[];
 } = {}) {
   const {
@@ -20,6 +23,8 @@ function makePrisma(overrides: {
     planes = [{ id: 'plan-1' }],
     totalMaterias = 10,
     materiasCubiertasIds = [{ materiaId: 'm-1' }, { materiaId: 'm-2' }],
+    docentesVigentesIds = [{ docenteId: 'd-1' }],
+    cargosActivosConCategoria = [{ docenteId: 'd-1', cargoId: 'c-1', cargo: { nombre: 'Titular' } }],
     cargosVigentes = [],
   } = overrides;
 
@@ -28,11 +33,14 @@ function makePrisma(overrides: {
     planEstudio: { findMany: jest.fn().mockResolvedValue(planes) },
     materia: { count: jest.fn().mockResolvedValue(totalMaterias) },
     vinculacionCatedra: {
-      findMany: jest.fn().mockImplementation((args: { distinct?: string[] }) => {
-        if (Array.isArray(args.distinct) && args.distinct.includes('materiaId')) {
-          return Promise.resolve(materiasCubiertasIds);
-        }
-        return Promise.resolve(cargosVigentes);
+      findMany: jest.fn().mockImplementation((args: any) => {
+        const distinct = (args.distinct ?? []) as string[];
+        const hasDocenteActivo = args.where?.docente?.activo === true;
+
+        if (distinct.includes('materiaId')) return Promise.resolve(materiasCubiertasIds);
+        if (!distinct.includes('cargoId'))  return Promise.resolve(docentesVigentesIds);   // IP-01
+        if (hasDocenteActivo)               return Promise.resolve(cargosActivosConCategoria); // IP-02
+        return Promise.resolve(cargosVigentes); // IP-08
       }),
     },
   };
@@ -175,11 +183,72 @@ describe('TablroCarreraService', () => {
     });
   });
 
+  describe('IP-01 — Docentes vigentes', () => {
+    it('NO_APLICA cuando no hay docentes activos con vinculación APROBADA', async () => {
+      const res = await makeSvc({ docentesVigentesIds: [] }).consultarCarrera(
+        CAR_ID, USR.usuarioId, USR.rolNombre,
+      );
+      expect(res.ip01.estadoCalculo).toBe(EstadoCalculo.NO_APLICA);
+      expect(res.ip01.total).toBe(0);
+    });
+
+    it('CALCULADO con conteo correcto de docentes distintos', async () => {
+      const res = await makeSvc({
+        docentesVigentesIds: [{ docenteId: 'd-1' }, { docenteId: 'd-2' }, { docenteId: 'd-3' }],
+      }).consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip01.estadoCalculo).toBe(EstadoCalculo.CALCULADO);
+      expect(res.ip01.total).toBe(3);
+    });
+  });
+
+  describe('IP-02 — Cargos docentes vigentes', () => {
+    it('NO_APLICA cuando no hay cargos docentes clasificables', async () => {
+      const res = await makeSvc({ cargosActivosConCategoria: [] }).consultarCarrera(
+        CAR_ID, USR.usuarioId, USR.rolNombre,
+      );
+      expect(res.ip02.estadoCalculo).toBe(EstadoCalculo.NO_APLICA);
+      expect(res.ip02.total).toBe(0);
+    });
+
+    it('CALCULADO con conteo correcto de cargos P+A', async () => {
+      const res = await makeSvc({
+        cargosActivosConCategoria: [
+          { docenteId: 'd-1', cargoId: 'c-1', cargo: { nombre: 'Titular' } },
+          { docenteId: 'd-1', cargoId: 'c-2', cargo: { nombre: 'JTP' } },
+          { docenteId: 'd-2', cargoId: 'c-1', cargo: { nombre: 'Adjunto' } },
+        ],
+      }).consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip02.estadoCalculo).toBe(EstadoCalculo.CALCULADO);
+      expect(res.ip02.total).toBe(3);
+    });
+
+    it('cargos de gestión ("Otros") no se cuentan en IP-02', async () => {
+      const res = await makeSvc({
+        cargosActivosConCategoria: [
+          { docenteId: 'd-1', cargoId: 'c-1', cargo: { nombre: 'Titular' } },
+          { docenteId: 'd-2', cargoId: 'c-2', cargo: { nombre: 'Coordinador' } },
+        ],
+      }).consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip02.total).toBe(1);
+    });
+
+    it('NO_APLICA cuando solo hay cargos de gestión', async () => {
+      const res = await makeSvc({
+        cargosActivosConCategoria: [
+          { docenteId: 'd-1', cargoId: 'c-1', cargo: { nombre: 'Director de Carrera' } },
+        ],
+      }).consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip02.estadoCalculo).toBe(EstadoCalculo.NO_APLICA);
+    });
+  });
+
   describe('estadoGeneralCalculo y estructura de respuesta', () => {
-    it('estadoGeneralCalculo es NO_APLICA cuando ambos indicadores son NO_APLICA', async () => {
+    it('estadoGeneralCalculo es NO_APLICA cuando todos los indicadores son NO_APLICA', async () => {
       const res = await makeSvc({
         planes: [],
         materiasCubiertasIds: [],
+        docentesVigentesIds: [],
+        cargosActivosConCategoria: [],
         cargosVigentes: [],
       }).consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
       expect(res.estadoGeneralCalculo).toBe(EstadoCalculo.NO_APLICA);
