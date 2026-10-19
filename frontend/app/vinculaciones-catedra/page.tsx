@@ -1,9 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { apiFetch } from '@/lib/api';
+import { apiFetch, mensajeErrorHttp } from '@/lib/api';
 import { normalizarMayusculas } from '@/lib/normalizarMayusculas';
 import { FormularioVinculacion } from './_components/FormularioVinculacion';
+import { useAuth } from '@/lib/auth-context';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -33,6 +34,8 @@ interface Vinculacion {
   fechaDesvinculacion?: string | null;
   motivoDesvinculacion?: string | null;
   fechaRegistroDesvinculacion?: string | null;
+  // MOD-AUT: responsabilidad de cátedra. null = sin clasificar.
+  esResponsableCatedra?: boolean | null;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -141,6 +144,15 @@ export default function VinculacionesCatedraPage() {
   const abortRef        = useRef<AbortController | null>(null);
   const debounceRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Responsabilidad de cátedra
+  const { usuario } = useAuth();
+  const puedeClasificar =
+    usuario?.rol?.nombre === 'ADMINISTRADOR_SISTEMA' ||
+    usuario?.rol?.nombre === 'DIRECTOR_CARRERA';
+  const [clasificandoResponsable, setClasificandoResponsable] = useState(false);
+  const [errorClasificacion, setErrorClasificacion]           = useState<string | null>(null);
+  const [exitoClasificacion, setExitoClasificacion]           = useState<string | null>(null);
+
   function abrirDesvincular(v: Vinculacion) {
     setDesvinculandoTarget(v);
     setFormDesvincular({ fecha: new Date().toISOString().split('T')[0], motivo: '' });
@@ -150,6 +162,41 @@ export default function VinculacionesCatedraPage() {
   function cerrarDesvincular() {
     setDesvinculandoTarget(null);
     setErrorDesvincular(null);
+  }
+
+  function cerrarVer() {
+    setVerTarget(null);
+    setErrorClasificacion(null);
+    setExitoClasificacion(null);
+  }
+
+  async function clasificarResponsable(esResponsable: boolean) {
+    if (!verTarget) return;
+    const vinId = verTarget.id;
+    setClasificandoResponsable(true);
+    setErrorClasificacion(null);
+    setExitoClasificacion(null);
+    try {
+      const r = await apiFetch(`${API}/autoevaluacion/responsable/${vinId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ esResponsable }),
+      });
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(mensajeErrorHttp(r, data, 'Error al actualizar la responsabilidad de cátedra'));
+      }
+      setVerTarget(prev => prev?.id === vinId ? { ...prev, esResponsableCatedra: esResponsable } : prev);
+      setItems(prev => prev.map(v => v.id === vinId ? { ...v, esResponsableCatedra: esResponsable } : v));
+      setExitoClasificacion(
+        esResponsable
+          ? 'Docente designado como responsable de cátedra.'
+          : 'Responsabilidad quitada. La materia podría quedar sin responsable confirmado.',
+      );
+    } catch (e) {
+      setErrorClasificacion((e as Error).message);
+    } finally {
+      setClasificandoResponsable(false);
+    }
   }
 
   // ── Carga de datos ─────────────────────────────────────────────────────────
@@ -473,7 +520,7 @@ export default function VinculacionesCatedraPage() {
               <div className="flex items-center gap-2">
                 {badgeEstado(verTarget.estado)}
                 <button
-                  onClick={() => setVerTarget(null)}
+                  onClick={cerrarVer}
                   className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors ml-1"
                 >
                   <IcX />
@@ -514,6 +561,50 @@ export default function VinculacionesCatedraPage() {
                     </div>
                   )}
                 </dl>
+              </section>
+
+              <hr className="border-slate-100" />
+
+              {/* Sección: Responsabilidad de cátedra */}
+              <section>
+                <h3 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">Responsabilidad de cátedra</h3>
+                <div className="flex items-center gap-2 mb-3">
+                  {verTarget.esResponsableCatedra === true && (
+                    <span className="inline-flex text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Responsable de cátedra</span>
+                  )}
+                  {verTarget.esResponsableCatedra === false && (
+                    <span className="inline-flex text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200">No responsable</span>
+                  )}
+                  {verTarget.esResponsableCatedra == null && (
+                    <span className="inline-flex text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">Sin clasificar</span>
+                  )}
+                </div>
+                {verTarget.estado === 'APROBADA' && puedeClasificar && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => clasificarResponsable(true)}
+                        disabled={clasificandoResponsable || verTarget.esResponsableCatedra === true}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {clasificandoResponsable ? 'Procesando…' : 'Marcar como responsable'}
+                      </button>
+                      <button
+                        onClick={() => clasificarResponsable(false)}
+                        disabled={clasificandoResponsable || verTarget.esResponsableCatedra === false}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {clasificandoResponsable ? 'Procesando…' : 'Quitar responsabilidad'}
+                      </button>
+                    </div>
+                    {exitoClasificacion && (
+                      <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">{exitoClasificacion}</p>
+                    )}
+                    {errorClasificacion && (
+                      <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{errorClasificacion}</p>
+                    )}
+                  </div>
+                )}
               </section>
 
               <hr className="border-slate-100" />
@@ -573,7 +664,7 @@ export default function VinculacionesCatedraPage() {
             {/* Footer */}
             <div className="flex justify-end px-6 py-4 border-t border-slate-100 flex-shrink-0">
               <button
-                onClick={() => setVerTarget(null)}
+                onClick={cerrarVer}
                 className="px-5 py-2 text-sm font-semibold text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
               >
                 Volver
