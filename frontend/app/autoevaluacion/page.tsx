@@ -16,6 +16,7 @@ const CONTEXTO_POR_INDICADOR: Record<string, 'carreraId' | 'planEstudioId'> = {
   'R-07': 'carreraId',
   'R-08': 'planEstudioId',
   'R-09': 'planEstudioId',
+  'R-12': 'carreraId',
 };
 
 // ── API helper ─────────────────────────────────────────────────────────────────
