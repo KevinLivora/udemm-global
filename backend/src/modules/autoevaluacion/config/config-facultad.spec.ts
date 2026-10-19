@@ -30,7 +30,8 @@ function makePrisma(overrides: Partial<Record<string, any>> = {}) {
   return {
     autoevaluacionConfigFacultad: {
       findUnique: jest.fn().mockResolvedValue(CONFIG_EXISTENTE),
-      upsert:     jest.fn().mockResolvedValue(CONFIG_EXISTENTE),
+      create:     jest.fn().mockResolvedValue(CONFIG_EXISTENTE),
+      update:     jest.fn().mockResolvedValue(CONFIG_EXISTENTE),
     },
     facultad: {
       findUnique: jest.fn().mockResolvedValue({ id: FACULTAD_ID }),
@@ -46,11 +47,12 @@ function makePrisma(overrides: Partial<Record<string, any>> = {}) {
 }
 
 /** Prisma que simula que NO hay config preexistente (caso creación). */
-function makePrismaCreacion(upsertMock = jest.fn().mockResolvedValue(CONFIG_EXISTENTE)) {
+function makePrismaCreacion(createMock = jest.fn().mockResolvedValue(CONFIG_EXISTENTE)) {
   return makePrisma({
     autoevaluacionConfigFacultad: {
       findUnique: jest.fn().mockResolvedValue(null),
-      upsert:     upsertMock,
+      create:     createMock,
+      update:     jest.fn(),
     },
   });
 }
@@ -78,7 +80,8 @@ describe('ConfigFacultadService — obtenerConfig', () => {
       const prisma = makePrisma({
         autoevaluacionConfigFacultad: {
           findUnique: jest.fn().mockResolvedValue(null),
-          upsert:     jest.fn(),
+          create:     jest.fn(),
+          update:     jest.fn(),
         },
       });
       const service = makeService(prisma, makeScope());
@@ -159,15 +162,15 @@ describe('ConfigFacultadService — upsertConfig', () => {
   });
 
   describe('Caso 9 (M-01): creación con los tres parámetros completos → aceptada', () => {
-    it('no lanza error y llama a upsert cuando la creación incluye p01, p02 y p03', async () => {
-      const upsertMock = jest.fn().mockResolvedValue(CONFIG_EXISTENTE);
-      const service = makeService(makePrismaCreacion(upsertMock), makeScope());
+    it('no lanza error y llama a create cuando la creación incluye p01, p02 y p03', async () => {
+      const createMock = jest.fn().mockResolvedValue(CONFIG_EXISTENTE);
+      const service = makeService(makePrismaCreacion(createMock), makeScope());
       const result = await service.upsertConfig(
         FACULTAD_ID,
         { p01TopeH: 60, p02BajaH: 20, p03MaxMat: 4 },
         USUARIO_ID,
       );
-      expect(upsertMock).toHaveBeenCalledTimes(1);
+      expect(createMock).toHaveBeenCalledTimes(1);
       expect(result).toEqual(CONFIG_EXISTENTE);
     });
   });
@@ -195,7 +198,8 @@ describe('ConfigFacultadService — upsertConfig', () => {
       const prisma = makePrisma({
         autoevaluacionConfigFacultad: {
           findUnique: jest.fn().mockResolvedValue({ ...CONFIG_EXISTENTE, p01TopeH: 60 }),
-          upsert:     jest.fn().mockResolvedValue(CONFIG_EXISTENTE),
+          create:     jest.fn(),
+          update:     jest.fn().mockResolvedValue(CONFIG_EXISTENTE),
         },
       });
       const service = makeService(prisma, makeScope());
@@ -208,7 +212,8 @@ describe('ConfigFacultadService — upsertConfig', () => {
       const prisma = makePrisma({
         autoevaluacionConfigFacultad: {
           findUnique: jest.fn().mockResolvedValue({ ...CONFIG_EXISTENTE, p01TopeH: 40 }),
-          upsert:     jest.fn(),
+          create:     jest.fn(),
+          update:     jest.fn(),
         },
       });
       const service = makeService(prisma, makeScope());
@@ -220,39 +225,89 @@ describe('ConfigFacultadService — upsertConfig', () => {
 
   describe('Caso 12 (M-01): actualización parcial con config existente → aceptada', () => {
     it('acepta actualización de solo p01TopeH sin exigir los demás parámetros', async () => {
-      const upsertMock = jest.fn().mockResolvedValue({ ...CONFIG_EXISTENTE, p01TopeH: 70 });
+      const updateMock = jest.fn().mockResolvedValue({ ...CONFIG_EXISTENTE, p01TopeH: 70 });
       const prisma = makePrisma({
         autoevaluacionConfigFacultad: {
-          findUnique: jest.fn().mockResolvedValue(CONFIG_EXISTENTE), // config existe
-          upsert:     upsertMock,
+          findUnique: jest.fn().mockResolvedValue(CONFIG_EXISTENTE),
+          create:     jest.fn(),
+          update:     updateMock,
         },
       });
       const service = makeService(prisma, makeScope());
       // Solo envía p01TopeH=70; p02BajaH=20 (almacenado) < 70 → válido
       const result = await service.upsertConfig(FACULTAD_ID, { p01TopeH: 70 }, USUARIO_ID);
-      expect(upsertMock).toHaveBeenCalledTimes(1);
+      expect(updateMock).toHaveBeenCalledTimes(1);
       expect(result).toBeDefined();
     });
   });
 
-  describe('Caso 13: upsert exitoso en creación', () => {
-    it('llama a prisma.upsert con los valores correctos y retorna la config guardada', async () => {
-      const upsertMock = jest.fn().mockResolvedValue(CONFIG_EXISTENTE);
-      const service = makeService(makePrismaCreacion(upsertMock), makeScope());
+  describe('Caso 13: create exitoso en la creación inicial', () => {
+    it('llama a prisma.create con los valores correctos y retorna la config guardada', async () => {
+      const createMock = jest.fn().mockResolvedValue(CONFIG_EXISTENTE);
+      const service = makeService(makePrismaCreacion(createMock), makeScope());
       const result = await service.upsertConfig(
         FACULTAD_ID,
         { p01TopeH: 60, p02BajaH: 20, p03MaxMat: 4 },
         USUARIO_ID,
       );
 
-      expect(upsertMock).toHaveBeenCalledTimes(1);
-      expect(upsertMock).toHaveBeenCalledWith(
+      expect(createMock).toHaveBeenCalledTimes(1);
+      expect(createMock).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { facultadId: FACULTAD_ID },
-          create: expect.objectContaining({ p01TopeH: 60, p02BajaH: 20, p03MaxMat: 4 }),
+          data: expect.objectContaining({ p01TopeH: 60, p02BajaH: 20, p03MaxMat: 4 }),
         }),
       );
       expect(result).toEqual(CONFIG_EXISTENTE);
+    });
+  });
+
+  // ── Casos de regresión: PATCH parcial en update no debe incluir ramas create ─
+
+  describe('Caso 14 (regresión): PATCH solo p03MaxMat con config existente — bug original', () => {
+    it('llama a update con solo p03MaxMat y no incluye p01TopeH ni p02BajaH en data', async () => {
+      const cfgActualizada = { ...CONFIG_EXISTENTE, p03MaxMat: 5 };
+      const updateMock = jest.fn().mockResolvedValue(cfgActualizada);
+      const prisma = makePrisma({
+        autoevaluacionConfigFacultad: {
+          findUnique: jest.fn().mockResolvedValue(CONFIG_EXISTENTE),
+          create:     jest.fn(),
+          update:     updateMock,
+        },
+      });
+      const service = makeService(prisma, makeScope());
+
+      const result = await service.upsertConfig(FACULTAD_ID, { p03MaxMat: 5 }, USUARIO_ID);
+
+      expect(updateMock).toHaveBeenCalledTimes(1);
+      const updateArgs = updateMock.mock.calls[0][0];
+      expect(updateArgs.data).toHaveProperty('p03MaxMat', 5);
+      expect(updateArgs.data).not.toHaveProperty('p01TopeH');
+      expect(updateArgs.data).not.toHaveProperty('p02BajaH');
+      expect(result).toEqual(cfgActualizada);
+    });
+  });
+
+  describe('Caso 15 (regresión): PATCH solo p01TopeH con config existente', () => {
+    it('llama a update con solo p01TopeH y no incluye p02BajaH ni p03MaxMat en data', async () => {
+      const cfgActualizada = { ...CONFIG_EXISTENTE, p01TopeH: 80 };
+      const updateMock = jest.fn().mockResolvedValue(cfgActualizada);
+      const prisma = makePrisma({
+        autoevaluacionConfigFacultad: {
+          findUnique: jest.fn().mockResolvedValue(CONFIG_EXISTENTE),
+          create:     jest.fn(),
+          update:     updateMock,
+        },
+      });
+      const service = makeService(prisma, makeScope());
+      // p02BajaH=20 (almacenado) < p01TopeH=80 (nuevo) → válido
+      const result = await service.upsertConfig(FACULTAD_ID, { p01TopeH: 80 }, USUARIO_ID);
+
+      expect(updateMock).toHaveBeenCalledTimes(1);
+      const updateArgs = updateMock.mock.calls[0][0];
+      expect(updateArgs.data).toHaveProperty('p01TopeH', 80);
+      expect(updateArgs.data).not.toHaveProperty('p02BajaH');
+      expect(updateArgs.data).not.toHaveProperty('p03MaxMat');
+      expect(result).toEqual(cfgActualizada);
     });
   });
 });

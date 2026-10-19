@@ -82,30 +82,40 @@ export class ConfigFacultadService {
       );
     }
 
+    const select = {
+      id: true,
+      facultadId: true,
+      p01TopeH: true,
+      p02BajaH: true,
+      p03MaxMat: true,
+      updatedAt: true,
+      updatedBy: true,
+    };
+
+    // Usar create/update explícitos para evitar que Prisma valide la rama create
+    // con campos undefined cuando el registro ya existe (bug: upsert valida ambas ramas).
+    if (esCreacion) {
+      return this.prisma.autoevaluacionConfigFacultad.create({
+        data: {
+          facultadId,
+          p01TopeH: dto.p01TopeH!,  // garantizado definido por la validación M-01
+          p02BajaH: dto.p02BajaH!,
+          p03MaxMat: dto.p03MaxMat!,
+          updatedBy: usuarioId,
+        },
+        select,
+      });
+    }
+
     const data: Record<string, unknown> = { updatedBy: usuarioId };
     if (dto.p01TopeH !== undefined) data['p01TopeH'] = dto.p01TopeH;
     if (dto.p02BajaH !== undefined) data['p02BajaH'] = dto.p02BajaH;
     if (dto.p03MaxMat !== undefined) data['p03MaxMat'] = dto.p03MaxMat;
 
-    return this.prisma.autoevaluacionConfigFacultad.upsert({
+    return this.prisma.autoevaluacionConfigFacultad.update({
       where: { facultadId },
-      create: {
-        facultadId,
-        p01TopeH: dto.p01TopeH as number,  // garantizado definido por la validación de creación
-        p02BajaH: dto.p02BajaH as number,
-        p03MaxMat: dto.p03MaxMat as number,
-        updatedBy: usuarioId,
-      },
-      update: data,
-      select: {
-        id: true,
-        facultadId: true,
-        p01TopeH: true,
-        p02BajaH: true,
-        p03MaxMat: true,
-        updatedAt: true,
-        updatedBy: true,
-      },
+      data,
+      select,
     });
   }
 

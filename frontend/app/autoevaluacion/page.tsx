@@ -284,8 +284,9 @@ export default function AutoevaluacionPage() {
     return undefined;
   }
 
-  const carreraLabel = carreras.find(c => c.id === carreraId)?.nombre;
-  const planLabel    = planes.find(p => p.id === planId)?.nombre;
+  const carreraSeleccionada = carreras.find(c => c.id === carreraId);
+  const carreraLabel        = carreraSeleccionada?.nombre;
+  const planLabel           = planes.find(p => p.id === planId)?.nombre;
 
   return (
     <div className="max-w-6xl mx-auto">
@@ -400,6 +401,14 @@ export default function AutoevaluacionPage() {
                 className="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-[#0f4c81]/10 text-[#0f4c81] border border-[#0f4c81]/20 hover:bg-[#0f4c81]/15 transition-colors"
               >
                 Ver tablero de carrera →
+              </Link>
+            )}
+            {rol === 'ADMINISTRADOR_SISTEMA' && carreraSeleccionada?.facultadId && (
+              <Link
+                href={`/autoevaluacion/config/facultad/${carreraSeleccionada.facultadId}`}
+                className="flex items-center gap-1 text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200 hover:bg-slate-200 transition-colors"
+              >
+                Configurar parámetros de facultad →
               </Link>
             )}
             {planId && (
