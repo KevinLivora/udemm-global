@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '@/lib/auth-context';
 import { apiFetch, mensajeErrorHttp } from '@/lib/api';
 import type { EvaluacionBloqueIPL05, EstadoCalculo, TablroPlanResponse } from './types';
 
@@ -128,11 +129,13 @@ function FilaBloque({ b }: { b: EvaluacionBloqueIPL05 }) {
 // ── Componente interno (necesita Suspense por useSearchParams) ──────────────
 
 function TableroPlanInner() {
+  const { usuario } = useAuth();
   const params       = useParams<{ planId: string }>();
   const searchParams = useSearchParams();
   const planId       = params.planId;
   const planLabel    = searchParams.get('plan')    ?? '';
   const carreraLabel = searchParams.get('carrera') ?? '';
+  const esAdmin      = usuario?.rol?.nombre === 'ADMINISTRADOR_SISTEMA';
 
   const [cargando, setCargando] = useState(true);
   const [error,    setError]    = useState<string | null>(null);
@@ -183,14 +186,24 @@ function TableroPlanInner() {
             </p>
           )}
         </div>
-        <button
-          onClick={cargar}
-          disabled={cargando}
-          className="flex items-center gap-1.5 text-xs font-semibold text-[#0f4c81] hover:bg-[#0f4c81]/8 active:bg-[#0f4c81]/15 px-3 py-2 rounded-lg border border-[#0f4c81]/15 transition-colors disabled:opacity-50 flex-shrink-0"
-        >
-          {cargando ? <IcSpinner sm /> : <IcRefresh />}
-          Actualizar
-        </button>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {esAdmin && (
+            <Link
+              href={`/autoevaluacion/config/plan/${planId}?plan=${encodeURIComponent(planLabel)}&carrera=${encodeURIComponent(carreraLabel)}`}
+              className="flex items-center gap-1 text-xs font-semibold text-[#0f4c81] hover:bg-[#0f4c81]/8 px-3 py-2 rounded-lg border border-[#0f4c81]/15 transition-colors"
+            >
+              Configurar umbrales →
+            </Link>
+          )}
+          <button
+            onClick={cargar}
+            disabled={cargando}
+            className="flex items-center gap-1.5 text-xs font-semibold text-[#0f4c81] hover:bg-[#0f4c81]/8 active:bg-[#0f4c81]/15 px-3 py-2 rounded-lg border border-[#0f4c81]/15 transition-colors disabled:opacity-50"
+          >
+            {cargando ? <IcSpinner sm /> : <IcRefresh />}
+            Actualizar
+          </button>
+        </div>
       </div>
 
       {/* Estado general — dato informativo, no semáforo institucional */}
