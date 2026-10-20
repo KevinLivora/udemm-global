@@ -1,6 +1,7 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { TablroCarreraService } from './tablero-carrera.service';
 import { EstadoCalculo } from '../types/estado-calculo.types';
+import type { ResultadoR06 } from '../indicadores/r06.evaluador';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -50,13 +51,45 @@ function makeScope(tieneScope = true) {
   return { tieneScopeCarrera: jest.fn().mockResolvedValue(tieneScope) };
 }
 
+/** Crea un mock de R06EvaluadorService con resultado controlable. */
+function makeR06Mock(estadoCalculo: EstadoCalculo = EstadoCalculo.CALCULADO) {
+  const tieneData = estadoCalculo === EstadoCalculo.CALCULADO;
+  const valor: ResultadoR06 = {
+    carreraId: CAR_ID,
+    totalDocentes: tieneData ? 2 : 0,
+    promedio: tieneData ? 2.0 : null,
+    mediana: tieneData ? 2.0 : null,
+    maximo: tieneData ? 3 : null,
+    distribucion: tieneData
+      ? [
+          { docenteId: 'd-1', nombre: 'Doc Uno', nMaterias: 3 },
+          { docenteId: 'd-2', nombre: 'Doc Dos', nMaterias: 1 },
+        ]
+      : [],
+  };
+  return {
+    evaluar: jest.fn().mockResolvedValue({
+      codigo: 'R-06',
+      contextoId: CAR_ID,
+      tipoContexto: 'CARRERA' as const,
+      estadoImplementacion: 'IMPLEMENTADO' as const,
+      estadoCalculo,
+      valor,
+      datosFaltantes: [],
+      fechaEvaluacion: new Date(),
+    }),
+  };
+}
+
 function makeSvc(
   prismaOverrides: Parameters<typeof makePrisma>[0] = {},
   scopeValue = true,
+  r06Estado: EstadoCalculo = EstadoCalculo.CALCULADO,
 ) {
   return new TablroCarreraService(
     makePrisma(prismaOverrides) as any,
     makeScope(scopeValue) as any,
+    makeR06Mock(r06Estado) as any,
   );
 }
 
@@ -244,17 +277,21 @@ describe('TablroCarreraService', () => {
 
   describe('estadoGeneralCalculo y estructura de respuesta', () => {
     it('estadoGeneralCalculo es NO_APLICA cuando todos los indicadores son NO_APLICA', async () => {
-      const res = await makeSvc({
-        planes: [],
-        materiasCubiertasIds: [],
-        docentesVigentesIds: [],
-        cargosActivosConCategoria: [],
-        cargosVigentes: [],
-      }).consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      const res = await makeSvc(
+        {
+          planes: [],
+          materiasCubiertasIds: [],
+          docentesVigentesIds: [],
+          cargosActivosConCategoria: [],
+          cargosVigentes: [],
+        },
+        true,
+        EstadoCalculo.NO_APLICA,
+      ).consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
       expect(res.estadoGeneralCalculo).toBe(EstadoCalculo.NO_APLICA);
     });
 
-    it('estadoGeneralCalculo es CALCULADO cuando ambos indicadores son CALCULADO', async () => {
+    it('estadoGeneralCalculo es CALCULADO cuando todos los indicadores son CALCULADO', async () => {
       const res = await makeSvc({
         totalMaterias: 5,
         materiasCubiertasIds: [{ materiaId: 'm-1' }],
@@ -270,6 +307,84 @@ describe('TablroCarreraService', () => {
       const res = await makeSvc().consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
       expect(res.fechaEvaluacion).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
       expect(new Date(res.fechaEvaluacion).toISOString()).toBe(res.fechaEvaluacion);
+    });
+  });
+
+  // ── IP-04 — Materias por docente ─────────────────────────────────────────────
+
+  describe('IP-04 — Materias por docente', () => {
+    it('CALCULADO: retorna totalDocentes, mediana, promedio y máximo del resultado R-06', async () => {
+      const res = await makeSvc().consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip04.estadoCalculo).toBe(EstadoCalculo.CALCULADO);
+      expect(res.ip04.totalDocentes).toBe(2);
+      expect(res.ip04.mediana).toBe(2.0);
+      expect(res.ip04.promedio).toBe(2.0);
+      expect(res.ip04.maximo).toBe(3);
+    });
+
+    it('NO_APLICA: stats null y distribución vacía cuando R-06 retorna NO_APLICA', async () => {
+      const res = await makeSvc({}, true, EstadoCalculo.NO_APLICA).consultarCarrera(
+        CAR_ID, USR.usuarioId, USR.rolNombre,
+      );
+      expect(res.ip04.estadoCalculo).toBe(EstadoCalculo.NO_APLICA);
+      expect(res.ip04.totalDocentes).toBe(0);
+      expect(res.ip04.mediana).toBeNull();
+      expect(res.ip04.promedio).toBeNull();
+      expect(res.ip04.maximo).toBeNull();
+      expect(res.ip04.distribucion).toEqual([]);
+    });
+
+    it('distribucion refleja el resultado de R-06 sin transformaciones', async () => {
+      const res = await makeSvc().consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip04.distribucion).toHaveLength(2);
+      expect(res.ip04.distribucion[0]).toMatchObject({ docenteId: 'd-1', nombre: 'Doc Uno', nMaterias: 3 });
+      expect(res.ip04.distribucion[1]).toMatchObject({ docenteId: 'd-2', nombre: 'Doc Dos', nMaterias: 1 });
+    });
+
+    it('R-06 es invocado con carreraId, usuarioId y rolNombre del contexto', async () => {
+      const r06Mock = makeR06Mock();
+      const svc = new TablroCarreraService(
+        makePrisma() as any,
+        makeScope() as any,
+        r06Mock as any,
+      );
+      await svc.consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(r06Mock.evaluar).toHaveBeenCalledWith(
+        expect.objectContaining({
+          carreraId: CAR_ID,
+          usuarioId: USR.usuarioId,
+          rolNombre: USR.rolNombre,
+        }),
+      );
+    });
+
+    it('estadoGeneralCalculo incluye IP-04: todos CALCULADO → CALCULADO', async () => {
+      const res = await makeSvc({
+        totalMaterias: 5,
+        materiasCubiertasIds: [{ materiaId: 'm-1' }],
+        cargosVigentes: [
+          { docenteId: 'd-1', cargoId: 'c-1', cargo: { nombre: 'Titular' } },
+        ],
+      }).consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip04.estadoCalculo).toBe(EstadoCalculo.CALCULADO);
+      expect(res.estadoGeneralCalculo).toBe(EstadoCalculo.CALCULADO);
+    });
+
+    it('estadoGeneralCalculo incluye IP-04: IP-04 NO_APLICA eleva el estado general', async () => {
+      const res = await makeSvc(
+        {
+          totalMaterias: 5,
+          materiasCubiertasIds: [{ materiaId: 'm-1' }],
+          cargosVigentes: [
+            { docenteId: 'd-1', cargoId: 'c-1', cargo: { nombre: 'Titular' } },
+          ],
+        },
+        true,
+        EstadoCalculo.NO_APLICA,
+      ).consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip04.estadoCalculo).toBe(EstadoCalculo.NO_APLICA);
+      // NO_APLICA (peso 2) > CALCULADO (peso 1) → estadoGeneralCalculo = NO_APLICA
+      expect(res.estadoGeneralCalculo).toBe(EstadoCalculo.NO_APLICA);
     });
   });
 });

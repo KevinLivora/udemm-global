@@ -1,5 +1,29 @@
 import type { EstadoCalculo } from '../types/estado-calculo.types';
 
+// ── IP-04 ─────────────────────────────────────────────────────────────────────
+
+export interface DocenteDistribucionIP04 {
+  docenteId: string;
+  nombre: string;
+  nMaterias: number;
+}
+
+/**
+ * FSD §7, IP-04 — Materias por docente.
+ *
+ * Unidad de conteo: distinct materiaId por docenteId con estado APROBADA y docente.activo=true.
+ * Valor principal: mediana. Complementarios: promedio y máximo.
+ * Null cuando totalDocentes = 0 (estadoCalculo → NO_APLICA).
+ */
+export interface ResultadoIP04 {
+  totalDocentes: number;
+  mediana: number | null;
+  promedio: number | null;
+  maximo: number | null;
+  distribucion: DocenteDistribucionIP04[];
+  estadoCalculo: EstadoCalculo;
+}
+
 /**
  * FSD §7, IP-01 — Cantidad de docentes vigentes.
  * Distintos docenteId con ≥1 VinculacionCatedra estado='APROBADA' y docente.activo=true.
@@ -56,7 +80,7 @@ export interface ResultadoIP08 {
 /**
  * Respuesta del endpoint POST /autoevaluacion/tablero/carrera/:carreraId.
  *
- * estadoGeneralCalculo refleja el estado más restrictivo entre IP-01, IP-02, IP-03 e IP-08.
+ * estadoGeneralCalculo refleja el estado más restrictivo entre IP-01, IP-02, IP-03, IP-04 e IP-08.
  */
 export interface TablroCarreraResponseDto {
   carreraId: string;
@@ -65,6 +89,7 @@ export interface TablroCarreraResponseDto {
   ip01: ResultadoIP01;
   ip02: ResultadoIP02;
   ip03: ResultadoIP03;
+  ip04: ResultadoIP04;
   ip08: ResultadoIP08;
   estadoGeneralCalculo: EstadoCalculo;
 }

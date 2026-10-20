@@ -72,6 +72,21 @@ const escenarioA: TablroCarreraResponseDto = {
   ip01: { total: 5, estadoCalculo: EstadoCalculo.CALCULADO },
   ip02: { total: 8, estadoCalculo: EstadoCalculo.CALCULADO },
   ip03: { cubiertas: 12, total: 15, estadoCalculo: EstadoCalculo.CALCULADO },
+  // IP-04: 5 docentes con [1,2,3,4,5] materias → mediana=3, promedio=3, máximo=5
+  ip04: {
+    totalDocentes: 5,
+    mediana: 3,
+    promedio: 3,
+    maximo: 5,
+    distribucion: [
+      { docenteId: 'd-5', nombre: 'Doc E', nMaterias: 5 },
+      { docenteId: 'd-4', nombre: 'Doc D', nMaterias: 4 },
+      { docenteId: 'd-3', nombre: 'Doc C', nMaterias: 3 },
+      { docenteId: 'd-2', nombre: 'Doc B', nMaterias: 2 },
+      { docenteId: 'd-1', nombre: 'Doc A', nMaterias: 1 },
+    ],
+    estadoCalculo: EstadoCalculo.CALCULADO,
+  },
   ip08: { profesores: 6, auxiliares: 3, ratio: 2.0, estadoCalculo: EstadoCalculo.CALCULADO },
   estadoGeneralCalculo: EstadoCalculo.CALCULADO,
 };
@@ -86,6 +101,14 @@ const escenarioE: TablroCarreraResponseDto = {
   ip01: { total: 0, estadoCalculo: EstadoCalculo.NO_APLICA },
   ip02: { total: 0, estadoCalculo: EstadoCalculo.NO_APLICA },
   ip03: { cubiertas: 0, total: 0, estadoCalculo: EstadoCalculo.NO_APLICA },
+  ip04: {
+    totalDocentes: 0,
+    mediana: null,
+    promedio: null,
+    maximo: null,
+    distribucion: [],
+    estadoCalculo: EstadoCalculo.NO_APLICA,
+  },
   ip08: { profesores: 0, auxiliares: 0, ratio: null, estadoCalculo: EstadoCalculo.NO_APLICA },
   estadoGeneralCalculo: EstadoCalculo.NO_APLICA,
 };
@@ -238,7 +261,7 @@ describe('POST /autoevaluacion/tablero/carrera/:carreraId', () => {
 
   // ── Estructura del DTO ─────────────────────────────────────────────────────
 
-  it('respuesta 200 incluye todos los campos requeridos (ip01, ip02, ip03, ip08)', async () => {
+  it('respuesta 200 incluye todos los campos requeridos (ip01, ip02, ip03, ip04, ip08)', async () => {
     const res = await request(app.getHttpServer())
       .post(`/autoevaluacion/tablero/carrera/${CAR_ID}`)
       .set('x-test-user', JSON.stringify(USR_ADMIN))
@@ -250,6 +273,11 @@ describe('POST /autoevaluacion/tablero/carrera/:carreraId', () => {
       ip01: expect.objectContaining({ total: expect.any(Number), estadoCalculo: expect.any(String) }),
       ip02: expect.objectContaining({ total: expect.any(Number), estadoCalculo: expect.any(String) }),
       ip03: expect.objectContaining({ cubiertas: expect.any(Number), total: expect.any(Number) }),
+      ip04: expect.objectContaining({
+        totalDocentes: expect.any(Number),
+        distribucion: expect.any(Array),
+        estadoCalculo: expect.any(String),
+      }),
       ip08: expect.objectContaining({ profesores: expect.any(Number), auxiliares: expect.any(Number) }),
       estadoGeneralCalculo: expect.any(String),
     });
@@ -348,6 +376,20 @@ describe('Escenarios académicos — DTO del tablero de carrera', () => {
       expect(res.body.ip08.ratio).toBe(6 / 3);
       expect(res.body.ip08.profesores).toBe(6);
       expect(res.body.ip08.auxiliares).toBe(3);
+    });
+
+    it('ip04 tiene mediana=3, promedio=3, máximo=5, totalDocentes=5', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/autoevaluacion/tablero/carrera/${CAR_ID}`)
+        .set('x-test-user', JSON.stringify(USR_ADMIN))
+        .expect(200);
+      // Fixture: 5 docentes con [1,2,3,4,5] materias → mediana=3, promedio=3, máximo=5
+      expect(res.body.ip04.totalDocentes).toBe(5);
+      expect(res.body.ip04.mediana).toBe(3);
+      expect(res.body.ip04.promedio).toBe(3);
+      expect(res.body.ip04.maximo).toBe(5);
+      expect(res.body.ip04.distribucion).toHaveLength(5);
+      expect(res.body.ip04.estadoCalculo).toBe(EstadoCalculo.CALCULADO);
     });
 
     it('estadoGeneralCalculo = CALCULADO cuando todos los indicadores son CALCULADO', async () => {
@@ -452,6 +494,19 @@ describe('Escenarios académicos — DTO del tablero de carrera', () => {
       expect(res.body.ip08.ratio).toBeNull();
       expect(res.body.ip08.profesores).toBe(0);
       expect(res.body.ip08.auxiliares).toBe(0);
+    });
+
+    it('ip04 NO_APLICA: stats null, distribución vacía, totalDocentes = 0', async () => {
+      const res = await request(app.getHttpServer())
+        .post(`/autoevaluacion/tablero/carrera/${CAR_ID}`)
+        .set('x-test-user', JSON.stringify(USR_ADMIN))
+        .expect(200);
+      expect(res.body.ip04.estadoCalculo).toBe(EstadoCalculo.NO_APLICA);
+      expect(res.body.ip04.totalDocentes).toBe(0);
+      expect(res.body.ip04.mediana).toBeNull();
+      expect(res.body.ip04.promedio).toBeNull();
+      expect(res.body.ip04.maximo).toBeNull();
+      expect(res.body.ip04.distribucion).toEqual([]);
     });
   });
 

@@ -19,6 +19,22 @@ export interface ResultadoIP03 {
   estadoCalculo: EstadoCalculo;
 }
 
+/** FSD §7, IP-04 — Materias por docente. Mediana como valor principal. */
+export interface DocenteDistribucionIP04 {
+  docenteId: string;
+  nombre: string;
+  nMaterias: number;
+}
+
+export interface ResultadoIP04 {
+  totalDocentes: number;
+  mediana: number | null;
+  promedio: number | null;
+  maximo: number | null;
+  distribucion: DocenteDistribucionIP04[];
+  estadoCalculo: EstadoCalculo;
+}
+
 /** FSD §7, IP-08 — Relación profesores / auxiliares del plantel de la carrera. */
 export interface ResultadoIP08 {
   profesores: number;
@@ -35,6 +51,7 @@ export interface TablroCarreraResponse {
   ip01: ResultadoIP01;
   ip02: ResultadoIP02;
   ip03: ResultadoIP03;
+  ip04: ResultadoIP04;
   ip08: ResultadoIP08;
   estadoGeneralCalculo: EstadoCalculo;
 }

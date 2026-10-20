@@ -293,6 +293,43 @@ describe('R06EvaluadorService — F. filtro por estado APROBADA', () => {
     expect(resultado.valor!.distribucion.map(d => d.docenteId)).not.toContain('doc-02');
   });
 
+  it('docente inactivo (activo=false) con vinculación APROBADA no se contabiliza en IP-04', async () => {
+    const { svc } = makeSvc([
+      makeVin('doc-01', 'mat-01'),
+      makeVin('doc-02', 'mat-01', {
+        docente: {
+          id: 'doc-02',
+          nombre: 'Nombre-doc-02',
+          apellido: 'Apellido-doc-02',
+          activo: false,
+          dedicacion: null,
+          categoriaDocente: null,
+        },
+      }),
+    ]);
+    const resultado = await svc.evaluar(makeContexto());
+    expect(resultado.valor!.totalDocentes).toBe(1);
+    expect(resultado.valor!.distribucion.map(d => d.docenteId)).not.toContain('doc-02');
+  });
+
+  it('todos los docentes inactivos con APROBADA → NO_APLICA', async () => {
+    const { svc } = makeSvc([
+      makeVin('doc-01', 'mat-01', {
+        docente: {
+          id: 'doc-01',
+          nombre: 'Nombre-doc-01',
+          apellido: 'Apellido-doc-01',
+          activo: false,
+          dedicacion: null,
+          categoriaDocente: null,
+        },
+      }),
+    ]);
+    const resultado = await svc.evaluar(makeContexto());
+    expect(resultado.estadoCalculo).toBe(EstadoCalculo.NO_APLICA);
+    expect(resultado.valor!.totalDocentes).toBe(0);
+  });
+
 });
 
 // ════════════════════════════════════════════════════════════════════════════

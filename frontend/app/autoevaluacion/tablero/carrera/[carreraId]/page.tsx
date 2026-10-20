@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch, mensajeErrorHttp } from '@/lib/api';
-import type { EstadoCalculo, TablroCarreraResponse } from './types';
+import type { EstadoCalculo, ResultadoIP04, TablroCarreraResponse } from './types';
 
 // ── Helpers visuales ─────────────────────────────────────────────────────────
 
@@ -72,6 +72,78 @@ function Metrica({ label, valor, destaca = false }: {
   );
 }
 
+// ── IP-04: Materias por docente ───────────────────────────────────────────────
+
+function fmtNum(n: number | null): string {
+  if (n === null) return '—';
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+function TarjetaIP04({ ip04 }: { ip04: ResultadoIP04 }) {
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <EtiquetaIndicador codigo="IP-04" titulo="Materias por docente" />
+
+      {ip04.estadoCalculo === 'NO_APLICA' ? (
+        <div className="p-3 rounded-lg bg-sky-50 border border-sky-200">
+          <p className="text-xs text-sky-700">
+            Sin docentes activos con asignaciones aprobadas. No aplica la evaluación.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {/* Mediana — métrica principal */}
+            <div className="rounded-lg px-3 py-3 border border-[#0f4c81]/15 bg-[#0f4c81]/5 text-center">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-[#0f4c81]/60 mb-0.5 leading-tight">
+                Mediana
+              </p>
+              <p className="text-2xl font-bold tabular-nums text-[#0f4c81]">
+                {fmtNum(ip04.mediana)}
+              </p>
+              <p className="text-[9px] text-slate-400 mt-0.5">mat / docente</p>
+            </div>
+            <Metrica label="Promedio" valor={fmtNum(ip04.promedio)} />
+            <Metrica label="Máximo" valor={fmtNum(ip04.maximo)} />
+            <Metrica label="Docentes" valor={ip04.totalDocentes} />
+          </div>
+
+          {ip04.distribucion.length > 0 && (
+            <details className="mt-3 group">
+              <summary className="cursor-pointer text-[11px] font-semibold text-slate-500 hover:text-slate-700 select-none list-none flex items-center gap-1.5">
+                <span className="inline-block transition-transform group-open:rotate-90">▶</span>
+                Distribución por docente ({ip04.distribucion.length})
+              </summary>
+              <div className="mt-2 overflow-x-auto rounded-lg border border-slate-100">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-slate-50">
+                      <th className="text-left px-3 py-1.5 font-semibold text-slate-500">Docente</th>
+                      <th className="text-right px-3 py-1.5 font-semibold text-slate-500">Materias</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ip04.distribucion.map((d, i) => (
+                      <tr key={d.docenteId} className={i % 2 === 0 ? '' : 'bg-slate-50/60'}>
+                        <td className="px-3 py-1.5 text-slate-700">{d.nombre}</td>
+                        <td className="px-3 py-1.5 text-right font-mono tabular-nums text-slate-700">{d.nMaterias}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          )}
+
+          <div className="flex justify-end mt-2">
+            <EstadoBadge ec={ip04.estadoCalculo} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Componente interno (necesita Suspense por useSearchParams) ────────────────
 
 function TablroCarreraInner() {
@@ -104,6 +176,7 @@ function TablroCarreraInner() {
   const ip01 = dato?.ip01;
   const ip02 = dato?.ip02;
   const ip03 = dato?.ip03;
+  const ip04 = dato?.ip04;
   const ip08 = dato?.ip08;
 
   // IP-03: derivar sin cobertura y porcentaje solo cuando hay datos reales
@@ -176,7 +249,7 @@ function TablroCarreraInner() {
       )}
 
       {/* Indicadores */}
-      {dato && ip01 && ip02 && ip03 && ip08 && (
+      {dato && ip01 && ip02 && ip03 && ip04 && ip08 && (
         <div className="space-y-4">
 
           {/* IP-01 + IP-02 — Plantel vigente (fila compacta) */}
@@ -292,6 +365,9 @@ function TablroCarreraInner() {
             )}
           </div>
 
+          {/* IP-04 — Materias por docente */}
+          <TarjetaIP04 ip04={ip04} />
+
           {/* IP-08 — Relación profesores / auxiliares */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
             <EtiquetaIndicador codigo="IP-08" titulo="Relación profesores / auxiliares" />
@@ -352,7 +428,7 @@ function TablroCarreraInner() {
           {/* Nota metodológica */}
           <p className="text-[10px] text-slate-400 text-center">
             Indicadores FSD §7 — Plantel de la carrera.
-            IP-01 e IP-02 incluyen solo docentes activos (docente.activo=true).
+            IP-01, IP-02 e IP-04 incluyen solo docentes activos (docente.activo=true) con vinculación APROBADA.
             IP-03 e IP-08 basados en vinculaciones con estado APROBADA.
           </p>
 

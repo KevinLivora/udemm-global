@@ -78,7 +78,7 @@ export class R06EvaluadorService implements IndicadorEvaluador<ResultadoR06> {
       contexto.rolNombre,
     );
 
-    const aprobadas = vinculaciones.filter((v) => v.estado === 'APROBADA');
+    const aprobadas = vinculaciones.filter((v) => v.estado === 'APROBADA' && v.docente.activo);
 
     if (aprobadas.length === 0) {
       return {

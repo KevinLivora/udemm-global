@@ -1,8 +1,9 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ScopeService } from '../../scopes/scope.service';
+import { R06EvaluadorService } from '../indicadores/r06.evaluador';
 import { EstadoCalculo } from '../types/estado-calculo.types';
-import type { ResultadoIP01, ResultadoIP02, ResultadoIP03, ResultadoIP08, TablroCarreraResponseDto } from './tablero-carrera.dto';
+import type { ResultadoIP01, ResultadoIP02, ResultadoIP03, ResultadoIP04, ResultadoIP08, TablroCarreraResponseDto } from './tablero-carrera.dto';
 
 // ── Autorización ──────────────────────────────────────────────────────────────
 
@@ -73,6 +74,7 @@ export class TablroCarreraService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly scope: ScopeService,
+    private readonly r06: R06EvaluadorService,
   ) {}
 
   async consultarCarrera(
@@ -94,11 +96,12 @@ export class TablroCarreraService {
     if (!tieneScope) throw new ForbiddenException();
 
     const fechaEvaluacion = new Date();
-    const [ip01, ip02, ip03, ip08] = await Promise.all([
+    const [ip01, ip02, ip03, ip08, ip04] = await Promise.all([
       this.calcularIP01(carreraId),
       this.calcularIP02(carreraId),
       this.calcularIP03(carreraId),
       this.calcularIP08(carreraId),
+      this.calcularIP04(carreraId, usuarioId, rolNombre, fechaEvaluacion),
     ]);
 
     return {
@@ -107,10 +110,11 @@ export class TablroCarreraService {
       ip01,
       ip02,
       ip03,
+      ip04,
       ip08,
       estadoGeneralCalculo: estadoMasRestrictivo(
         ip01.estadoCalculo, ip02.estadoCalculo,
-        ip03.estadoCalculo, ip08.estadoCalculo,
+        ip03.estadoCalculo, ip04.estadoCalculo, ip08.estadoCalculo,
       ),
     };
   }
@@ -194,6 +198,34 @@ export class TablroCarreraService {
       cubiertas: materiasCubiertas.length,
       total: totalMaterias,
       estadoCalculo: EstadoCalculo.CALCULADO,
+    };
+  }
+
+  /**
+   * IP-04: Materias por docente (FSD §7).
+   *
+   * Delega en R06EvaluadorService que ya implementa el cálculo completo:
+   * - Universo: docentes con ≥1 vinculación APROBADA y activo=true en la carrera.
+   * - Deduplicación: distinct materiaId por docenteId (cátedra y materia equivalen).
+   * - Estadísticas: mediana (principal), promedio, máximo.
+   *
+   * estadoCalculo comparte universo con IP-01 (mismo filtro activo=true + APROBADA).
+   */
+  private async calcularIP04(
+    carreraId: string,
+    usuarioId: string,
+    rolNombre: string,
+    fechaEvaluacion: Date,
+  ): Promise<ResultadoIP04> {
+    const resultado = await this.r06.evaluar({ carreraId, usuarioId, rolNombre, fechaEvaluacion });
+    const v = resultado.valor!;
+    return {
+      totalDocentes: v.totalDocentes,
+      mediana: v.mediana,
+      promedio: v.promedio,
+      maximo: v.maximo,
+      distribucion: v.distribucion,
+      estadoCalculo: resultado.estadoCalculo ?? EstadoCalculo.NO_DETERMINABLE,
     };
   }
 
