@@ -2,6 +2,7 @@ import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { TablroCarreraService } from './tablero-carrera.service';
 import { EstadoCalculo } from '../types/estado-calculo.types';
 import type { ResultadoR06 } from '../indicadores/r06.evaluador';
+import type { ResultadoR07 } from '../indicadores/r07.evaluador';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -81,15 +82,57 @@ function makeR06Mock(estadoCalculo: EstadoCalculo = EstadoCalculo.CALCULADO) {
   };
 }
 
+/** Crea un mock de R07EvaluadorService con resultado controlable. */
+function makeR07Mock(
+  estadoCalculo: EstadoCalculo = EstadoCalculo.CALCULADO,
+  options: { sobreasignados?: number; alcanceFacultad?: boolean; noDeterminables?: number } = {},
+) {
+  const { sobreasignados: nSobre = 0, alcanceFacultad = true, noDeterminables = 0 } = options;
+  const limite = estadoCalculo === EstadoCalculo.NO_DETERMINABLE ? null : 3;
+  const totalDocentes = estadoCalculo === EstadoCalculo.NO_APLICA ? 0 : 2;
+  const valor: ResultadoR07 = {
+    carreraId: CAR_ID,
+    facultadId: 'fac-01',
+    limite,
+    totalDocentes,
+    totalSobreasignados: nSobre,
+    sobreasignados: Array.from({ length: nSobre }, (_, i) => ({
+      docenteId: `d-over-${i + 1}`,
+      nombre: `Sobreasignado ${i + 1}`,
+      nMaterias: (limite ?? 3) + i + 1,
+      exceso: i + 1,
+      asignaciones: [],
+    })),
+    totalNoDeterminables: noDeterminables,
+    noDeterminables: [],
+    alcanceFacultad,
+  };
+  return {
+    evaluar: jest.fn().mockResolvedValue({
+      codigo: 'R-07',
+      contextoId: CAR_ID,
+      tipoContexto: 'DOCENTE' as const,
+      estadoImplementacion: 'IMPLEMENTADO' as const,
+      estadoCalculo,
+      valor,
+      datosFaltantes: [],
+      fechaEvaluacion: new Date(),
+    }),
+  };
+}
+
 function makeSvc(
   prismaOverrides: Parameters<typeof makePrisma>[0] = {},
   scopeValue = true,
   r06Estado: EstadoCalculo = EstadoCalculo.CALCULADO,
+  r07Estado: EstadoCalculo = EstadoCalculo.CALCULADO,
+  r07Options: { sobreasignados?: number; alcanceFacultad?: boolean; noDeterminables?: number } = {},
 ) {
   return new TablroCarreraService(
     makePrisma(prismaOverrides) as any,
     makeScope(scopeValue) as any,
     makeR06Mock(r06Estado) as any,
+    makeR07Mock(r07Estado, r07Options) as any,
   );
 }
 
@@ -286,7 +329,8 @@ describe('TablroCarreraService', () => {
           cargosVigentes: [],
         },
         true,
-        EstadoCalculo.NO_APLICA,
+        EstadoCalculo.NO_APLICA,  // IP-04 (r06)
+        EstadoCalculo.NO_APLICA,  // IP-13 (r07)
       ).consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
       expect(res.estadoGeneralCalculo).toBe(EstadoCalculo.NO_APLICA);
     });
@@ -307,6 +351,127 @@ describe('TablroCarreraService', () => {
       const res = await makeSvc().consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
       expect(res.fechaEvaluacion).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
       expect(new Date(res.fechaEvaluacion).toISOString()).toBe(res.fechaEvaluacion);
+    });
+  });
+
+  // ── IP-13 — Docentes sobreasignados ──────────────────────────────────────────
+
+  describe('IP-13 — Docentes sobreasignados', () => {
+    it('CALCULADO sin sobreasignados: totalSobreasignados=0, sobreasignados vacío', async () => {
+      const res = await makeSvc().consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip13.estadoCalculo).toBe(EstadoCalculo.CALCULADO);
+      expect(res.ip13.totalSobreasignados).toBe(0);
+      expect(res.ip13.sobreasignados).toEqual([]);
+      expect(res.ip13.alcanceFacultad).toBe(true);
+    });
+
+    it('CALCULADO con sobreasignados: retorna lista con docenteId, nombre, nMaterias, exceso', async () => {
+      const res = await makeSvc({}, true, EstadoCalculo.CALCULADO, EstadoCalculo.CALCULADO, { sobreasignados: 2 })
+        .consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip13.estadoCalculo).toBe(EstadoCalculo.CALCULADO);
+      expect(res.ip13.totalSobreasignados).toBe(2);
+      expect(res.ip13.sobreasignados).toHaveLength(2);
+      expect(res.ip13.sobreasignados[0]).toMatchObject({
+        docenteId: 'd-over-1',
+        nombre: 'Sobreasignado 1',
+        nMaterias: expect.any(Number),
+        exceso: expect.any(Number),
+      });
+    });
+
+    it('limite refleja el valor de P-03 configurado', async () => {
+      const res = await makeSvc().consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip13.limite).toBe(3);
+    });
+
+    it('NO_APLICA: totalDocentes=0, sobreasignados vacío, limite presente', async () => {
+      const res = await makeSvc({}, true, EstadoCalculo.CALCULADO, EstadoCalculo.NO_APLICA)
+        .consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip13.estadoCalculo).toBe(EstadoCalculo.NO_APLICA);
+      expect(res.ip13.totalDocentes).toBe(0);
+      expect(res.ip13.sobreasignados).toEqual([]);
+    });
+
+    it('NO_DETERMINABLE: limite null cuando P-03 no está configurado', async () => {
+      const res = await makeSvc({}, true, EstadoCalculo.CALCULADO, EstadoCalculo.NO_DETERMINABLE)
+        .consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip13.estadoCalculo).toBe(EstadoCalculo.NO_DETERMINABLE);
+      expect(res.ip13.limite).toBeNull();
+      expect(res.ip13.sobreasignados).toEqual([]);
+    });
+
+    it('PARCIAL por alcance: alcanceFacultad=false (DIRECTOR_CARRERA)', async () => {
+      const res = await makeSvc({}, true, EstadoCalculo.CALCULADO, EstadoCalculo.PARCIAL, { alcanceFacultad: false })
+        .consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip13.estadoCalculo).toBe(EstadoCalculo.PARCIAL);
+      expect(res.ip13.alcanceFacultad).toBe(false);
+    });
+
+    it('PARCIAL por datos cross-facultad: totalNoDeterminables > 0', async () => {
+      const res = await makeSvc({}, true, EstadoCalculo.CALCULADO, EstadoCalculo.PARCIAL, { noDeterminables: 1 })
+        .consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip13.estadoCalculo).toBe(EstadoCalculo.PARCIAL);
+      expect(res.ip13.totalNoDeterminables).toBe(1);
+    });
+
+    it('R-07 es invocado con carreraId, usuarioId y rolNombre del contexto', async () => {
+      const r07Mock = makeR07Mock();
+      const svc = new TablroCarreraService(
+        makePrisma() as any,
+        makeScope() as any,
+        makeR06Mock() as any,
+        r07Mock as any,
+      );
+      await svc.consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(r07Mock.evaluar).toHaveBeenCalledWith(
+        expect.objectContaining({
+          carreraId: CAR_ID,
+          usuarioId: USR.usuarioId,
+          rolNombre: USR.rolNombre,
+        }),
+      );
+    });
+
+    it('estadoGeneralCalculo incluye IP-13: todos CALCULADO → CALCULADO', async () => {
+      const res = await makeSvc({
+        totalMaterias: 5,
+        materiasCubiertasIds: [{ materiaId: 'm-1' }],
+        cargosVigentes: [{ docenteId: 'd-1', cargoId: 'c-1', cargo: { nombre: 'Titular' } }],
+      }).consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip13.estadoCalculo).toBe(EstadoCalculo.CALCULADO);
+      expect(res.estadoGeneralCalculo).toBe(EstadoCalculo.CALCULADO);
+    });
+
+    it('estadoGeneralCalculo incluye IP-13: IP-13 PARCIAL eleva el estado general', async () => {
+      const res = await makeSvc(
+        {
+          totalMaterias: 5,
+          materiasCubiertasIds: [{ materiaId: 'm-1' }],
+          cargosVigentes: [{ docenteId: 'd-1', cargoId: 'c-1', cargo: { nombre: 'Titular' } }],
+        },
+        true,
+        EstadoCalculo.CALCULADO,
+        EstadoCalculo.PARCIAL,
+      ).consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip13.estadoCalculo).toBe(EstadoCalculo.PARCIAL);
+      // PARCIAL (peso 3) > CALCULADO (peso 1) → estadoGeneralCalculo = PARCIAL
+      expect(res.estadoGeneralCalculo).toBe(EstadoCalculo.PARCIAL);
+    });
+
+    it('estadoGeneralCalculo incluye IP-13: IP-13 NO_DETERMINABLE eleva el estado general', async () => {
+      const res = await makeSvc(
+        {
+          totalMaterias: 5,
+          materiasCubiertasIds: [{ materiaId: 'm-1' }],
+          cargosVigentes: [{ docenteId: 'd-1', cargoId: 'c-1', cargo: { nombre: 'Titular' } }],
+        },
+        true,
+        EstadoCalculo.CALCULADO,
+        EstadoCalculo.NO_DETERMINABLE,
+      ).consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
+      expect(res.ip13.estadoCalculo).toBe(EstadoCalculo.NO_DETERMINABLE);
+      // NO_DETERMINABLE (peso 4) > CALCULADO (peso 1) → estadoGeneralCalculo = NO_DETERMINABLE
+      expect(res.estadoGeneralCalculo).toBe(EstadoCalculo.NO_DETERMINABLE);
     });
   });
 
@@ -347,6 +512,7 @@ describe('TablroCarreraService', () => {
         makePrisma() as any,
         makeScope() as any,
         r06Mock as any,
+        makeR07Mock() as any,
       );
       await svc.consultarCarrera(CAR_ID, USR.usuarioId, USR.rolNombre);
       expect(r06Mock.evaluar).toHaveBeenCalledWith(

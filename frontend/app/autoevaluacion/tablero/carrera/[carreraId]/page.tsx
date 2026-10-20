@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch, mensajeErrorHttp } from '@/lib/api';
-import type { EstadoCalculo, ResultadoIP04, TablroCarreraResponse } from './types';
+import type { EstadoCalculo, ResultadoIP04, ResultadoIP13, TablroCarreraResponse } from './types';
 
 // ── Helpers visuales ─────────────────────────────────────────────────────────
 
@@ -144,6 +144,114 @@ function TarjetaIP04({ ip04 }: { ip04: ResultadoIP04 }) {
   );
 }
 
+// ── IP-13: Docentes sobreasignados ────────────────────────────────────────────
+
+function TarjetaIP13({ ip13 }: { ip13: ResultadoIP13 }) {
+  const ec = ip13.estadoCalculo;
+
+  return (
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <EtiquetaIndicador codigo="IP-13" titulo="Docentes sobreasignados" />
+
+      {ec === 'NO_APLICA' ? (
+        <div className="p-3 rounded-lg bg-sky-50 border border-sky-200">
+          <p className="text-xs text-sky-700">
+            Sin docentes activos con asignaciones aprobadas. No aplica la evaluación.
+          </p>
+        </div>
+      ) : ec === 'NO_DETERMINABLE' ? (
+        <div className="p-3 rounded-lg bg-slate-50 border border-slate-200">
+          <p className="text-xs text-slate-600">
+            El parámetro P-03 (máximo de materias por docente) no está configurado para esta facultad.
+            Configure P-03 en la sección de parámetros para calcular este indicador.
+          </p>
+          <div className="flex justify-end mt-2">
+            <EstadoBadge ec={ec} />
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Advertencia de alcance parcial */}
+          {(ec === 'PARCIAL' || !ip13.alcanceFacultad) && (
+            <div className="mb-3 p-2 rounded-lg bg-amber-50 border border-amber-200">
+              <p className="text-[11px] text-amber-700 leading-relaxed">
+                <span className="font-semibold">Evaluación parcial</span>
+                {!ip13.alcanceFacultad
+                  ? ' — alcance limitado a esta carrera. Pueden existir asignaciones fuera del alcance consultado.'
+                  : ip13.totalNoDeterminables > 0
+                  ? ` — ${ip13.totalNoDeterminables} docente(s) con asignaciones en otras facultades no pudieron evaluarse.`
+                  : ' — pueden existir asignaciones fuera del alcance consultado.'}
+              </p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {/* Sobreasignados — métrica principal */}
+            <div className={`rounded-lg px-3 py-3 border text-center ${ip13.totalSobreasignados > 0
+              ? 'border-red-200 bg-red-50'
+              : 'border-emerald-200 bg-emerald-50'}`}>
+              <p className={`text-[10px] font-semibold uppercase tracking-wide mb-0.5 leading-tight ${
+                ip13.totalSobreasignados > 0 ? 'text-red-600/70' : 'text-emerald-600/70'}`}>
+                Sobreasignados
+              </p>
+              <p className={`text-2xl font-bold tabular-nums ${
+                ip13.totalSobreasignados > 0 ? 'text-red-700' : 'text-emerald-700'}`}>
+                {ip13.totalSobreasignados}
+              </p>
+              {ip13.totalSobreasignados === 0 && (
+                <p className="text-[9px] text-emerald-600 mt-0.5">dentro del límite</p>
+              )}
+            </div>
+            <Metrica label="Total docentes" valor={ip13.totalDocentes} />
+            <Metrica label="Límite P-03" valor={ip13.limite ?? '—'} />
+            <Metrica label="No determinables" valor={ip13.totalNoDeterminables} />
+          </div>
+
+          {ip13.totalSobreasignados === 0 && ec !== 'PARCIAL' && (
+            <p className="mt-2 text-xs text-emerald-700 flex items-center gap-1.5">
+              <span className="text-emerald-500">✓</span>
+              Todos los docentes están dentro del límite establecido por P-03.
+            </p>
+          )}
+
+          {ip13.sobreasignados.length > 0 && (
+            <details className="mt-3 group">
+              <summary className="cursor-pointer text-[11px] font-semibold text-slate-500 hover:text-slate-700 select-none list-none flex items-center gap-1.5">
+                <span className="inline-block transition-transform group-open:rotate-90">▶</span>
+                Docentes con exceso de asignaciones ({ip13.sobreasignados.length})
+              </summary>
+              <div className="mt-2 overflow-x-auto rounded-lg border border-slate-100">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-slate-50">
+                      <th className="text-left px-3 py-1.5 font-semibold text-slate-500">Docente</th>
+                      <th className="text-right px-3 py-1.5 font-semibold text-slate-500">Materias</th>
+                      <th className="text-right px-3 py-1.5 font-semibold text-red-500">Exceso</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ip13.sobreasignados.map((d, i) => (
+                      <tr key={d.docenteId} className={i % 2 === 0 ? '' : 'bg-slate-50/60'}>
+                        <td className="px-3 py-1.5 text-slate-700">{d.nombre}</td>
+                        <td className="px-3 py-1.5 text-right font-mono tabular-nums text-slate-700">{d.nMaterias}</td>
+                        <td className="px-3 py-1.5 text-right font-mono tabular-nums text-red-600 font-semibold">+{d.exceso}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
+          )}
+
+          <div className="flex justify-end mt-2">
+            <EstadoBadge ec={ec} />
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 // ── Componente interno (necesita Suspense por useSearchParams) ────────────────
 
 function TablroCarreraInner() {
@@ -178,6 +286,7 @@ function TablroCarreraInner() {
   const ip03 = dato?.ip03;
   const ip04 = dato?.ip04;
   const ip08 = dato?.ip08;
+  const ip13 = dato?.ip13;
 
   // IP-03: derivar sin cobertura y porcentaje solo cuando hay datos reales
   const sinCobertura = ip03 && ip03.total > 0 ? ip03.total - ip03.cubiertas : null;
@@ -228,7 +337,7 @@ function TablroCarreraInner() {
           <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Estado general de cálculo:</span>
           <EstadoBadge ec={dato.estadoGeneralCalculo} />
           <span className="text-[10px] text-slate-400 italic">
-            Estado más restrictivo entre los cuatro indicadores — no indica cumplimiento académico.
+            Estado más restrictivo entre los seis indicadores. PARCIAL puede reflejar alcance limitado de IP-13 — no indica incumplimiento académico.
           </span>
         </div>
       )}
@@ -249,7 +358,7 @@ function TablroCarreraInner() {
       )}
 
       {/* Indicadores */}
-      {dato && ip01 && ip02 && ip03 && ip04 && ip08 && (
+      {dato && ip01 && ip02 && ip03 && ip04 && ip08 && ip13 && (
         <div className="space-y-4">
 
           {/* IP-01 + IP-02 — Plantel vigente (fila compacta) */}
@@ -368,6 +477,9 @@ function TablroCarreraInner() {
           {/* IP-04 — Materias por docente */}
           <TarjetaIP04 ip04={ip04} />
 
+          {/* IP-13 — Docentes sobreasignados */}
+          <TarjetaIP13 ip13={ip13} />
+
           {/* IP-08 — Relación profesores / auxiliares */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
             <EtiquetaIndicador codigo="IP-08" titulo="Relación profesores / auxiliares" />
@@ -428,7 +540,8 @@ function TablroCarreraInner() {
           {/* Nota metodológica */}
           <p className="text-[10px] text-slate-400 text-center">
             Indicadores FSD §7 — Plantel de la carrera.
-            IP-01, IP-02 e IP-04 incluyen solo docentes activos (docente.activo=true) con vinculación APROBADA.
+            IP-01, IP-02, IP-04 e IP-13 incluyen solo docentes activos (docente.activo=true) con vinculación APROBADA.
+            IP-13 evalúa sobreasignación a nivel de facultad (todos los roles excepto DIRECTOR_CARRERA → PARCIAL).
             IP-03 e IP-08 basados en vinculaciones con estado APROBADA.
           </p>
 

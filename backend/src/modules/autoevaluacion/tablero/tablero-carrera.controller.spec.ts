@@ -88,6 +88,16 @@ const escenarioA: TablroCarreraResponseDto = {
     estadoCalculo: EstadoCalculo.CALCULADO,
   },
   ip08: { profesores: 6, auxiliares: 3, ratio: 2.0, estadoCalculo: EstadoCalculo.CALCULADO },
+  // IP-13: P-03=3, 5 docentes evaluados, 1 sobreasignado (4 materias > 3)
+  ip13: {
+    limite: 3,
+    totalDocentes: 5,
+    totalSobreasignados: 1,
+    sobreasignados: [{ docenteId: 'd-5', nombre: 'Doc E', nMaterias: 4, exceso: 1 }],
+    totalNoDeterminables: 0,
+    alcanceFacultad: true,
+    estadoCalculo: EstadoCalculo.CALCULADO,
+  },
   estadoGeneralCalculo: EstadoCalculo.CALCULADO,
 };
 
@@ -110,6 +120,15 @@ const escenarioE: TablroCarreraResponseDto = {
     estadoCalculo: EstadoCalculo.NO_APLICA,
   },
   ip08: { profesores: 0, auxiliares: 0, ratio: null, estadoCalculo: EstadoCalculo.NO_APLICA },
+  ip13: {
+    limite: null,
+    totalDocentes: 0,
+    totalSobreasignados: 0,
+    sobreasignados: [],
+    totalNoDeterminables: 0,
+    alcanceFacultad: true,
+    estadoCalculo: EstadoCalculo.NO_APLICA,
+  },
   estadoGeneralCalculo: EstadoCalculo.NO_APLICA,
 };
 
@@ -261,7 +280,7 @@ describe('POST /autoevaluacion/tablero/carrera/:carreraId', () => {
 
   // ── Estructura del DTO ─────────────────────────────────────────────────────
 
-  it('respuesta 200 incluye todos los campos requeridos (ip01, ip02, ip03, ip04, ip08)', async () => {
+  it('respuesta 200 incluye todos los campos requeridos (ip01, ip02, ip03, ip04, ip08, ip13)', async () => {
     const res = await request(app.getHttpServer())
       .post(`/autoevaluacion/tablero/carrera/${CAR_ID}`)
       .set('x-test-user', JSON.stringify(USR_ADMIN))
@@ -279,6 +298,12 @@ describe('POST /autoevaluacion/tablero/carrera/:carreraId', () => {
         estadoCalculo: expect.any(String),
       }),
       ip08: expect.objectContaining({ profesores: expect.any(Number), auxiliares: expect.any(Number) }),
+      ip13: expect.objectContaining({
+        totalDocentes: expect.any(Number),
+        totalSobreasignados: expect.any(Number),
+        sobreasignados: expect.any(Array),
+        estadoCalculo: expect.any(String),
+      }),
       estadoGeneralCalculo: expect.any(String),
     });
   });
@@ -598,5 +623,98 @@ describe('Seguridad de scope territorial — carrera endpoint', () => {
       .expect(200);
 
     expect(res.body.estadoGeneralCalculo).toBe(EstadoCalculo.NO_APLICA);
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// D. Escenarios IP-13 — Docentes sobreasignados
+// ════════════════════════════════════════════════════════════════════════════
+
+describe('IP-13 — Docentes sobreasignados (HTTP contract)', () => {
+  let app: INestApplication;
+  let consultarCarrera: jest.Mock;
+
+  afterEach(() => app.close());
+
+  it('ip13 con sobreasignado en escenario A: totalSobreasignados=1, limite=3', async () => {
+    consultarCarrera = jest.fn().mockResolvedValue(escenarioA);
+    app = await crearApp(consultarCarrera);
+
+    const res = await request(app.getHttpServer())
+      .post(`/autoevaluacion/tablero/carrera/${CAR_ID}`)
+      .set('x-test-user', JSON.stringify(USR_ADMIN))
+      .expect(200);
+
+    expect(res.body.ip13.limite).toBe(3);
+    expect(res.body.ip13.totalDocentes).toBe(5);
+    expect(res.body.ip13.totalSobreasignados).toBe(1);
+    expect(res.body.ip13.sobreasignados).toHaveLength(1);
+    expect(res.body.ip13.sobreasignados[0]).toMatchObject({
+      docenteId: 'd-5',
+      nombre: 'Doc E',
+      nMaterias: 4,
+      exceso: 1,
+    });
+    expect(res.body.ip13.alcanceFacultad).toBe(true);
+    expect(res.body.ip13.estadoCalculo).toBe(EstadoCalculo.CALCULADO);
+  });
+
+  it('ip13 NO_APLICA en escenario E: totalDocentes=0, sobreasignados vacío', async () => {
+    consultarCarrera = jest.fn().mockResolvedValue(escenarioE);
+    app = await crearApp(consultarCarrera);
+
+    const res = await request(app.getHttpServer())
+      .post(`/autoevaluacion/tablero/carrera/${CAR_ID}`)
+      .set('x-test-user', JSON.stringify(USR_ADMIN))
+      .expect(200);
+
+    expect(res.body.ip13.estadoCalculo).toBe(EstadoCalculo.NO_APLICA);
+    expect(res.body.ip13.totalDocentes).toBe(0);
+    expect(res.body.ip13.sobreasignados).toEqual([]);
+  });
+
+  it('ip13 CALCULADO no implica cumplimiento — puede tener sobreasignados > 0', async () => {
+    consultarCarrera = jest.fn().mockResolvedValue(escenarioA);
+    app = await crearApp(consultarCarrera);
+
+    const res = await request(app.getHttpServer())
+      .post(`/autoevaluacion/tablero/carrera/${CAR_ID}`)
+      .set('x-test-user', JSON.stringify(USR_ADMIN))
+      .expect(200);
+
+    // CALCULADO significa que se pudo evaluar, no que todos están dentro del límite
+    expect(res.body.ip13.estadoCalculo).toBe(EstadoCalculo.CALCULADO);
+    expect(res.body.ip13.totalSobreasignados).toBeGreaterThan(0);
+  });
+
+  it('ip13 CALCULADO con sobreasignados eleva estadoGeneralCalculo si otros no son más restrictivos', async () => {
+    // escenarioA: todos CALCULADO, IP-13 CALCULADO → estadoGeneral = CALCULADO
+    consultarCarrera = jest.fn().mockResolvedValue(escenarioA);
+    app = await crearApp(consultarCarrera);
+
+    const res = await request(app.getHttpServer())
+      .post(`/autoevaluacion/tablero/carrera/${CAR_ID}`)
+      .set('x-test-user', JSON.stringify(USR_ADMIN))
+      .expect(200);
+
+    expect(res.body.estadoGeneralCalculo).toBe(EstadoCalculo.CALCULADO);
+  });
+
+  it('preserva los cinco indicadores existentes cuando se agrega ip13', async () => {
+    consultarCarrera = jest.fn().mockResolvedValue(escenarioA);
+    app = await crearApp(consultarCarrera);
+
+    const res = await request(app.getHttpServer())
+      .post(`/autoevaluacion/tablero/carrera/${CAR_ID}`)
+      .set('x-test-user', JSON.stringify(USR_ADMIN))
+      .expect(200);
+
+    // Todos los indicadores anteriores siguen presentes y correctos
+    expect(res.body.ip01).toBeDefined();
+    expect(res.body.ip02).toBeDefined();
+    expect(res.body.ip03).toBeDefined();
+    expect(res.body.ip04).toBeDefined();
+    expect(res.body.ip08).toBeDefined();
+    expect(res.body.ip13).toBeDefined();
   });
 });

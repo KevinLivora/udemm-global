@@ -2,8 +2,9 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { PrismaService } from '../../../prisma/prisma.service';
 import { ScopeService } from '../../scopes/scope.service';
 import { R06EvaluadorService } from '../indicadores/r06.evaluador';
+import { R07EvaluadorService } from '../indicadores/r07.evaluador';
 import { EstadoCalculo } from '../types/estado-calculo.types';
-import type { ResultadoIP01, ResultadoIP02, ResultadoIP03, ResultadoIP04, ResultadoIP08, TablroCarreraResponseDto } from './tablero-carrera.dto';
+import type { ResultadoIP01, ResultadoIP02, ResultadoIP03, ResultadoIP04, ResultadoIP08, ResultadoIP13, TablroCarreraResponseDto } from './tablero-carrera.dto';
 
 // ── Autorización ──────────────────────────────────────────────────────────────
 
@@ -75,6 +76,7 @@ export class TablroCarreraService {
     private readonly prisma: PrismaService,
     private readonly scope: ScopeService,
     private readonly r06: R06EvaluadorService,
+    private readonly r07: R07EvaluadorService,
   ) {}
 
   async consultarCarrera(
@@ -96,12 +98,13 @@ export class TablroCarreraService {
     if (!tieneScope) throw new ForbiddenException();
 
     const fechaEvaluacion = new Date();
-    const [ip01, ip02, ip03, ip08, ip04] = await Promise.all([
+    const [ip01, ip02, ip03, ip08, ip04, ip13] = await Promise.all([
       this.calcularIP01(carreraId),
       this.calcularIP02(carreraId),
       this.calcularIP03(carreraId),
       this.calcularIP08(carreraId),
       this.calcularIP04(carreraId, usuarioId, rolNombre, fechaEvaluacion),
+      this.calcularIP13(carreraId, usuarioId, rolNombre, fechaEvaluacion),
     ]);
 
     return {
@@ -112,9 +115,11 @@ export class TablroCarreraService {
       ip03,
       ip04,
       ip08,
+      ip13,
       estadoGeneralCalculo: estadoMasRestrictivo(
         ip01.estadoCalculo, ip02.estadoCalculo,
         ip03.estadoCalculo, ip04.estadoCalculo, ip08.estadoCalculo,
+        ip13.estadoCalculo,
       ),
     };
   }
@@ -225,6 +230,43 @@ export class TablroCarreraService {
       promedio: v.promedio,
       maximo: v.maximo,
       distribucion: v.distribucion,
+      estadoCalculo: resultado.estadoCalculo ?? EstadoCalculo.NO_DETERMINABLE,
+    };
+  }
+
+  /**
+   * IP-13: Docentes sobreasignados (FSD MOD-AUT §3.3 y §5.3).
+   *
+   * Delega en R07EvaluadorService, que evalúa el plantel completo de la facultad
+   * para roles con alcance suficiente (ADMIN/SECRETARIA/RECTORADO/DECANO), o
+   * solo la carrera solicitada para DIRECTOR_CARRERA (→ PARCIAL).
+   *
+   * Condición de sobreasignación: nMaterias > P-03 (comparación estricta).
+   * Unidad de conteo: combinaciones distintas (planEstudioId, materiaId, catedraId).
+   *
+   * El estado de IP-13 participa en estadoGeneralCalculo. PARCIAL indica evaluación
+   * incompleta (no implica incumplimiento académico definitivo).
+   */
+  private async calcularIP13(
+    carreraId: string,
+    usuarioId: string,
+    rolNombre: string,
+    fechaEvaluacion: Date,
+  ): Promise<ResultadoIP13> {
+    const resultado = await this.r07.evaluar({ carreraId, usuarioId, rolNombre, fechaEvaluacion });
+    const v = resultado.valor!;
+    return {
+      limite: v.limite,
+      totalDocentes: v.totalDocentes,
+      totalSobreasignados: v.totalSobreasignados,
+      sobreasignados: v.sobreasignados.map((d) => ({
+        docenteId: d.docenteId,
+        nombre: d.nombre,
+        nMaterias: d.nMaterias,
+        exceso: d.exceso,
+      })),
+      totalNoDeterminables: v.totalNoDeterminables,
+      alcanceFacultad: v.alcanceFacultad,
       estadoCalculo: resultado.estadoCalculo ?? EstadoCalculo.NO_DETERMINABLE,
     };
   }

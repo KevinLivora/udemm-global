@@ -35,6 +35,24 @@ export interface ResultadoIP04 {
   estadoCalculo: EstadoCalculo;
 }
 
+/** FSD MOD-AUT §3.3 y §5.3, IP-13 — Docentes sobreasignados. */
+export interface DocenteAlertaIP13 {
+  docenteId: string;
+  nombre: string;
+  nMaterias: number;
+  exceso: number;
+}
+
+export interface ResultadoIP13 {
+  limite: number | null;
+  totalDocentes: number;
+  totalSobreasignados: number;
+  sobreasignados: DocenteAlertaIP13[];
+  totalNoDeterminables: number;
+  alcanceFacultad: boolean;
+  estadoCalculo: EstadoCalculo;
+}
+
 /** FSD §7, IP-08 — Relación profesores / auxiliares del plantel de la carrera. */
 export interface ResultadoIP08 {
   profesores: number;
@@ -53,5 +71,6 @@ export interface TablroCarreraResponse {
   ip03: ResultadoIP03;
   ip04: ResultadoIP04;
   ip08: ResultadoIP08;
+  ip13: ResultadoIP13;
   estadoGeneralCalculo: EstadoCalculo;
 }

@@ -24,6 +24,38 @@ export interface ResultadoIP04 {
   estadoCalculo: EstadoCalculo;
 }
 
+// ── IP-13 ─────────────────────────────────────────────────────────────────────
+
+export interface DocenteAlertaIP13 {
+  docenteId: string;
+  nombre: string;
+  nMaterias: number;
+  exceso: number;
+}
+
+/**
+ * FSD MOD-AUT §3.3 y §5.3, IP-13 — Docentes sobreasignados.
+ *
+ * Universo: docentes activos con vinculaciones APROBADAS en la facultad completa
+ * (alcanceFacultad=true) o solo en la carrera solicitada (alcanceFacultad=false,
+ * DIRECTOR_CARRERA → estadoCalculo PARCIAL).
+ * Condición de alerta: nMaterias > limite (comparación estricta, FSD §5.3).
+ * Unidad de conteo: combinaciones distintas (planEstudioId, materiaId, catedraId).
+ * limite null indica que P-03 no está configurado (estadoCalculo → NO_DETERMINABLE).
+ */
+export interface ResultadoIP13 {
+  /** Valor de P-03 (p03MaxMat) utilizado; null cuando la config no existe. */
+  limite: number | null;
+  totalDocentes: number;
+  totalSobreasignados: number;
+  sobreasignados: DocenteAlertaIP13[];
+  /** Docentes con asignaciones cross-facultad cuya evaluación no pudo determinarse. */
+  totalNoDeterminables: number;
+  /** true cuando la evaluación cubrió toda la facultad; false (DIRECTOR_CARRERA) → PARCIAL. */
+  alcanceFacultad: boolean;
+  estadoCalculo: EstadoCalculo;
+}
+
 /**
  * FSD §7, IP-01 — Cantidad de docentes vigentes.
  * Distintos docenteId con ≥1 VinculacionCatedra estado='APROBADA' y docente.activo=true.
@@ -80,7 +112,8 @@ export interface ResultadoIP08 {
 /**
  * Respuesta del endpoint POST /autoevaluacion/tablero/carrera/:carreraId.
  *
- * estadoGeneralCalculo refleja el estado más restrictivo entre IP-01, IP-02, IP-03, IP-04 e IP-08.
+ * estadoGeneralCalculo refleja el estado más restrictivo entre IP-01, IP-02,
+ * IP-03, IP-04, IP-08 e IP-13.
  */
 export interface TablroCarreraResponseDto {
   carreraId: string;
@@ -91,5 +124,6 @@ export interface TablroCarreraResponseDto {
   ip03: ResultadoIP03;
   ip04: ResultadoIP04;
   ip08: ResultadoIP08;
+  ip13: ResultadoIP13;
   estadoGeneralCalculo: EstadoCalculo;
 }
