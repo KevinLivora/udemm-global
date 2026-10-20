@@ -101,6 +101,12 @@ const IcMenuClosed = () => (
   </svg>
 );
 
+const IcAutoeval = () => (
+  <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+  </svg>
+);
+
 // ── Tipos ────────────────────────────────────────────────────────────────────
 
 interface MenuItemType {
@@ -152,6 +158,12 @@ export function Sidebar() {
       href: '/repositorio-normativas',
     };
 
+    const ITEM_AUTOEVALUACION: MenuItemType = {
+      label: 'Autoevaluación',
+      icon: <IcAutoeval />,
+      href: '/autoevaluacion',
+    };
+
     if (usuario.rol?.nombre === 'DOCENTE') {
       return [
         { label: 'Inicio', icon: <IcHome />, href: '/' },
@@ -185,6 +197,7 @@ export function Sidebar() {
         ITEM_REPOSITORIO,
         SUBMENU_GESTION_ACADEMICA,
         ITEM_VINCULACION,
+        ITEM_AUTOEVALUACION,
         { label: 'Bandeja de Aprobaciones', icon: <IcInbox />, href: '/bandeja-aprobaciones' },
         {
           label: 'Configuración',
@@ -218,6 +231,7 @@ export function Sidebar() {
         ITEM_REPOSITORIO,
         SUBMENU_GESTION_ACADEMICA,
         ITEM_VINCULACION,
+        ITEM_AUTOEVALUACION,
         ITEM_BANDEJA_APROBACIONES,
         {
           label: 'Configuración',
@@ -239,6 +253,7 @@ export function Sidebar() {
         ITEM_REPOSITORIO,
         SUBMENU_GESTION_ACADEMICA,
         ITEM_VINCULACION,
+        ITEM_AUTOEVALUACION,
         ITEM_BANDEJA_APROBACIONES,
         {
           label: 'Configuración',
@@ -260,6 +275,7 @@ export function Sidebar() {
         ITEM_REPOSITORIO,
         SUBMENU_GESTION_ACADEMICA,
         ITEM_VINCULACION,
+        ITEM_AUTOEVALUACION,
         ITEM_BANDEJA_APROBACIONES,
       ];
     }
