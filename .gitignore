@@ -39,3 +39,4 @@ Desktop.ini
 
 # Storage de archivos cargados por la aplicacion
 backend/storage/
+pruebas-api/target/
