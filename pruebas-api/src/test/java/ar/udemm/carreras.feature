@@ -2,7 +2,7 @@ Feature: Carreras con sesión de administrador
 
 Background:
   * url baseUrl
-  * def sesion = callonce read('login.feature') { correo: '#(adminCorreo)', clave: '#(adminClave)' }
+  * def sesion = sesionAdmin
   * configure headers = { Origin: '#(frontendUrl)', 'X-Requested-With': 'XMLHttpRequest' }
 
 Scenario: El admin lista las carreras
